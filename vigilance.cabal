@@ -16,9 +16,25 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 executable vigilance
-  -- main-is:             
+  hs-source-dirs:     src,test
+  main-is: Utils/Vigilance/Main.hs
   -- other-modules:       
   -- other-extensions:    
-  build-depends:       base >=4.6 && <4.7
+  build-depends:       base >=4.6 && <4.7,
+                       lens >=3.9 && < 4.0,
+                       time
   -- hs-source-dirs:      
   default-language:    Haskell2010
+
+Test-Suite test-vigilance
+  Type: exitcode-stdio-1.0
+  hs-source-dirs:     src,test
+  Main-Is: Spec.hs
+  build-depends:       base   >=4.6 && <4.7,
+                       hspec  >= 1.6 && < 2.0,
+                       HUnit,
+                       QuickCheck,
+                       quickcheck-properties,
+                       lens >=3.9 && < 4.0,
+                       derive >=2.5.11 && < 3.0,
+                       time
