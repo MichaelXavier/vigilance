@@ -1,27 +1,21 @@
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE TemplateHaskell        #-}
-module Utils.Vigilance.Types ( Watch(..)
-                             , HasWatch(..)
-                             , ID(..)
-                             , HasID(..)
-                             , EmailAddress(..)
-                             , HasEmailAddress(..)
-                             , NewWatch(..)
-                             , NotificationPreference(..)
-                             , WatchInterval(..)
-                             , WatchState(..)
-                             , TimeUnit(..)
-                             , EWatch(..)) where
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE FunctionalDependencies     #-}
+{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeFamilies               #-}
+module Utils.Vigilance.Types where
 
+import Control.Applicative ((<$>))
 import Control.Lens hiding ((.=))
 import Control.Lens.TH
 import Data.Monoid
+import Data.Table
 import Data.Time (UTCTime)
 import Data.Text (Text)
 
-newtype ID = ID { _unID :: Text } deriving (Show, Eq)
+newtype ID = ID { _unID :: Int } deriving (Show, Eq, Ord, Num)
 
 makeClassy ''ID
 
@@ -64,7 +58,27 @@ data Watch i = Watch { _watchId            :: i
                      , _watchWReport       :: WatchReport
                      , _watchNotifications :: [NotificationPreference] } deriving (Show, Eq)
 
-makeClassy ''Watch
+makeLenses ''Watch
 
 type NewWatch = Watch ()
 type EWatch   = Watch ID
+
+type WatchTable = Table EWatch
+
+instance Tabular EWatch where
+  type PKT EWatch = ID
+  data Key k EWatch b where
+    WatchID :: Key Primary EWatch ID
+  data Tab EWatch i = WatchTable (i Primary ID)
+
+  fetch WatchID = _watchId
+
+  primary             = WatchID
+  primarily WatchID r = r
+
+  mkTab f = WatchTable <$> f WatchID
+
+  forTab (WatchTable x) f      = WatchTable <$> f WatchID x
+  ixTab (WatchTable x) WatchID = x
+
+  autoTab = autoIncrement watchId

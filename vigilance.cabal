@@ -21,8 +21,13 @@ executable vigilance
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base >=4.6 && <4.7,
+                       async == 2.*,
+                       errors >= 1.4.2 && <2.0,
                        lens >=3.9 && < 4.0,
-                       time
+                       time,
+                       tables,
+                       text,
+                       transformers
   -- hs-source-dirs:      
   default-language:    Haskell2010
 
@@ -31,10 +36,15 @@ Test-Suite test-vigilance
   hs-source-dirs:     src,test
   Main-Is: Spec.hs
   build-depends:       base   >=4.6 && <4.7,
+                       async == 2.*,
+                       errors >= 1.4.2 && <2.0,
                        hspec  >= 1.6 && < 2.0,
                        HUnit,
                        QuickCheck,
                        quickcheck-properties,
                        lens >=3.9 && < 4.0,
                        derive >=2.5.11 && < 3.0,
-                       time
+                       time,
+                       tables,
+                       text,
+                       transformers
