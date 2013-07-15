@@ -3,6 +3,9 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module SpecHelper ( module Utils.Vigilance.Types
+                  , (<$>)
+                  , (<*>)
+                  , pure
                   , module Control.Lens
                   , module Data.Monoid
                   , module Test.Hspec
