@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GADTs                      #-}
@@ -11,11 +12,15 @@ import Control.Applicative ((<$>))
 import Control.Lens hiding ((.=))
 import Control.Lens.TH
 import Data.Monoid
+import Data.SafeCopy ( base
+                     , SafeCopy
+                     , deriveSafeCopy)
 import Data.Table
 import Data.Time (UTCTime)
 import Data.Text (Text)
+import Data.Typeable (Typeable)
 
-newtype ID = ID { _unID :: Int } deriving (Show, Eq, Ord, Num)
+newtype ID = ID { _unID :: Int } deriving (Show, Eq, Ord, Num, SafeCopy, Typeable)
 
 makeClassy ''ID
 
@@ -40,7 +45,7 @@ instance Monoid WatchState where
   mappend Paused y      = y
   mappend x y           = y
 
-newtype EmailAddress = EmailAddress { _unEmailAddress :: Text } deriving (Show, Eq)
+newtype EmailAddress = EmailAddress { _unEmailAddress :: Text } deriving (Show, Eq, SafeCopy, Typeable)
 
 makeClassy ''EmailAddress
 
@@ -56,7 +61,7 @@ data Watch i = Watch { _watchId            :: i
                      , _watchName          :: Text
                      , _watchInterval      :: WatchInterval
                      , _watchWReport       :: WatchReport
-                     , _watchNotifications :: [NotificationPreference] } deriving (Show, Eq)
+                     , _watchNotifications :: [NotificationPreference] } deriving (Show, Eq, Typeable)
 
 makeLenses ''Watch
 
@@ -82,3 +87,15 @@ instance Tabular EWatch where
   ixTab (WatchTable x) WatchID = x
 
   autoTab = autoIncrement watchId
+
+data AppState = AppState { _wTable :: WatchTable }
+
+makeLenses ''AppState
+
+deriveSafeCopy 0 'base ''WatchState
+deriveSafeCopy 0 'base ''TimeUnit
+deriveSafeCopy 0 'base ''WatchInterval
+deriveSafeCopy 0 'base ''WatchReport
+deriveSafeCopy 0 'base ''Watch
+deriveSafeCopy 0 'base ''NotificationPreference
+deriveSafeCopy 0 'base ''AppState
