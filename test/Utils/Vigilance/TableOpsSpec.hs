@@ -1,4 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-} -- testing
 module Utils.Vigilance.TableOpsSpec (spec) where
 
 import Control.Monad.State
@@ -21,16 +20,18 @@ spec = do
           table'      = watchLens wId table (watchInterval .~ newInterval)
       in (view watchInterval <$> findWatch wId table') == Just newInterval
   describe "acid events" $ do
-    let initState = openAcidState mempty
+    let acid = openAcidState $ AppState mempty
 
-    --todo: test insert only
+    prop "it inserts correctly" $ \w ->
+      let (acid', w') = update acid $ insert w
+          result      = query acid' $ find w' 
+      in result == Just (w & watchId .~ 1)
 
     prop "it deletes data that is known" $ \w ->
-      let afterQuery = evalState (roundtrip w) initState
-      in  afterQuery == Nothing
-  where roundtrip w acid = do (acid', w') <- update acid $ insert w
-                              acid''      <- update_ acid' $ delete w'
-                              return $ query acid'' $ find w'
-        insert = CreateWatchEvent
-        delete = DeleteWatchEvent . _watchId
-        find   = FindWatchEvent . _watchId
+      let (acid', w') = update acid $ insert w
+          (acid'')    = update_ acid' $ delete w'
+          result      = query acid'' $ find w'
+      in  result == Nothing
+  where insert = CreateWatchEvent
+        delete = DeleteWatchEvent . view watchId
+        find   = FindWatchEvent . view watchId
