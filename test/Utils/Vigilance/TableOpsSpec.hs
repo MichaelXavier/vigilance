@@ -1,5 +1,8 @@
+{-# LANGUAGE ScopedTypeVariables #-} -- testing
 module Utils.Vigilance.TableOpsSpec (spec) where
 
+import Control.Monad.State
+import Data.Acid.Memory.Pure
 import Utils.Vigilance.TableOps
 import SpecHelper
 
@@ -16,4 +19,18 @@ spec = do
       let (w', table) = createWatch w emptyTable
           wId         = w' ^. watchId
           table'      = watchLens wId table (watchInterval .~ newInterval)
-          in (view watchInterval <$> findWatch wId table') == Just newInterval
+      in (view watchInterval <$> findWatch wId table') == Just newInterval
+  describe "acid events" $ do
+    let initState = openAcidState mempty
+
+    --todo: test insert only
+
+    prop "it deletes data that is known" $ \w ->
+      let afterQuery = evalState (roundtrip w) initState
+      in  afterQuery == Nothing
+  where roundtrip w acid = do (acid', w') <- update acid $ insert w
+                              acid''      <- update_ acid' $ delete w'
+                              return $ query acid'' $ find w'
+        insert = CreateWatchEvent
+        delete = DeleteWatchEvent . _watchId
+        find   = FindWatchEvent . _watchId

@@ -3,9 +3,17 @@
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeFamilies       #-}
 module Utils.Vigilance.TableOps ( createWatch
+                                , createWatchEvent
+                                , CreateWatchEvent(..)
                                 , createWatchS
                                 , deleteWatch
+                                , deleteWatchEvent
+                                , DeleteWatchEvent(..)
+                                , deleteWatchS
                                 , findWatch
+                                , findWatchEvent
+                                , FindWatchEvent(..)
+                                , findWatchS
                                 , watchLens
                                 , emptyTable) where
 
@@ -52,10 +60,6 @@ deleteWatchEvent i = wTable %= (deleteWatch i)
 findWatchEvent :: ID -> Query AppState (Maybe EWatch)
 findWatchEvent i = view (wTable . findWatch')
   where findWatch' = to $ findWatch i
-
---TODO: typesigs
-withStateRW action = action =<< get
-withStateR action  = action =<< ask
 
 $(makeAcidic ''AppState ['createWatchEvent, 'deleteWatchEvent, 'findWatchEvent])
 
