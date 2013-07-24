@@ -24,12 +24,28 @@ import Data.Table
 import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Text (Text)
 import Data.Typeable (Typeable)
+import qualified Data.Vector as V
 
-newtype ID = ID { _unID :: Int } deriving (Show, Eq, Ord, Num, SafeCopy, Typeable)
+newtype ID = ID { _unID :: Int } deriving ( Show
+                                          , Eq
+                                          , Ord
+                                          , Num
+                                          , SafeCopy
+                                          , FromJSON
+                                          , ToJSON
+                                          , Typeable)
 
 makeClassy ''ID
 
 data WatchInterval = Every Integer TimeUnit deriving (Show, Eq)
+
+instance ToJSON WatchInterval where
+  toJSON (Every n u) = Array $ V.fromList [toJSON n, toJSON u]
+  
+instance FromJSON WatchInterval where
+  parseJSON = withArray "WatchInterval" $ parseWatchInterval . V.toList
+    where parseWatchInterval [n@(Number (N.I _)), s@(String _)] = Every <$> parseJSON n <*> parseJSON s
+          parseWatchInterval _                              = fail "expecting a pair of integer and string"
 
 data TimeUnit = Seconds |
                 Minutes |
@@ -37,6 +53,23 @@ data TimeUnit = Seconds |
                 Days    |
                 Weeks   |
                 Years deriving (Show, Eq)
+
+instance ToJSON TimeUnit where
+  toJSON Seconds = String "seconds"
+  toJSON Minutes = String "minutes"
+  toJSON Hours   = String "hours"
+  toJSON Days    = String "days"
+  toJSON Weeks   = String "weeks"
+  toJSON Years   = String "years"
+
+instance FromJSON TimeUnit where
+  parseJSON = withText "TimeUnit" parseTimeUnit
+    where parseTimeUnit "seconds" = pure Seconds
+          parseTimeUnit "minutes" = pure Minutes
+          parseTimeUnit "hours"   = pure Hours
+          parseTimeUnit "days"    = pure Days
+          parseTimeUnit "weeks"   = pure Weeks
+          parseTimeUnit "years"   = pure Years
 
 data WatchState = Active    |
                   Paused    |
@@ -57,12 +90,18 @@ instance ToJSON WatchState where
 
 instance FromJSON WatchState where
   parseJSON = withText "WatchState" parseWatchState
-    where parseWatchState "active"    = Active
-          parseWatchState "paused"    = Paused
-          parseWatchState "notifying" = Notifying
-          parseWatchState "triggered" = Triggered
+    where parseWatchState "active"    = pure Active
+          parseWatchState "paused"    = pure Paused
+          parseWatchState "notifying" = pure Notifying
+          parseWatchState "triggered" = pure Triggered
+          parseWatchState _           = fail "Invalid value"
 
-newtype EmailAddress = EmailAddress { _unEmailAddress :: Text } deriving (Show, Eq, SafeCopy, Typeable)
+newtype EmailAddress = EmailAddress { _unEmailAddress :: Text } deriving ( Show
+                                                                         , Eq
+                                                                         , SafeCopy
+                                                                         , Typeable
+                                                                         , ToJSON
+                                                                         , FromJSON)
 
 makeClassy ''EmailAddress
 
@@ -79,6 +118,18 @@ instance FromJSON NotificationPreference where
 data WatchReport = WatchReport { _wrState       :: WatchState
                                , _wrLastCheckin :: Maybe POSIXTime } deriving (Show, Eq)
 
+makeClassy ''WatchReport
+
+instance ToJSON WatchReport where
+  toJSON wr = object [ "state"        .= (wr ^. wrState)
+                     , "last_checkin" .= (POSIXWrapper <$> wr ^. wrLastCheckin)]
+
+instance FromJSON WatchReport where
+  parseJSON = withObject "WatchReport" parseWatchReport
+    where parseWatchReport obj = WatchReport <$> obj .:? "state" .!= mempty
+                                             <*> (unwrapTime <$> obj .:? "last_checkin")
+          unwrapTime = fmap unPOSIXWrapper
+
 newtype POSIXWrapper = POSIXWrapper { unPOSIXWrapper :: POSIXTime }
 
 instance FromJSON POSIXWrapper where
@@ -89,7 +140,6 @@ instance FromJSON POSIXWrapper where
 instance ToJSON POSIXWrapper where
   toJSON = Number . N.I . truncate . toRational . unPOSIXWrapper
 
-makeClassy ''WatchReport
 
 --TODO: notification backend
 data Watch i = Watch { _watchId            :: i
@@ -103,32 +153,16 @@ makeLenses ''Watch
 type NewWatch = Watch ()
 type EWatch   = Watch ID
 
-instance ToJSON NewWatch where
+instance ToJSON a => ToJSON (Watch a) where
   toJSON w = object [ "id"            .= (w ^. watchId)
                     , "name"          .= (w ^. watchName)
                     , "interval"      .= (w ^. watchInterval)
-                    , "report"        .= (w ^. watchReport)
+                    , "report"        .= (w ^. watchWReport)
                     , "notifications" .= (w ^. watchNotifications)
                     , "name"          .= (w ^. watchName) ]
 
-instance FromJSON NewWatch where
-  parseJSON = withObject "NewWatch" parseNewWatch
-    where parseNewWatch obj = Watch <$> pure ()
-                                    <*> obj .: "name"
-                                    <*> obj .: "interval"
-                                    <*> obj .: "report"
-                                    <*> obj .: "notifications"
-
-instance ToJSON EWatch where
-  toJSON w = object [ "id"            .= (w ^. watchId)
-                    , "name"          .= (w ^. watchName)
-                    , "interval"      .= (w ^. watchInterval)
-                    , "report"        .= (w ^. watchReport)
-                    , "notifications" .= (w ^. watchNotifications)
-                    , "name"          .= (w ^. watchName) ]
-
-instance FromJSON EWatch where
-  parseJSON = withObject "EWatch" parseNewWatch
+instance FromJSON a => FromJSON (Watch a) where
+  parseJSON = withObject "Watch" parseNewWatch
     where parseNewWatch obj = Watch <$> obj .: "id"
                                     <*> obj .: "name"
                                     <*> obj .: "interval"
