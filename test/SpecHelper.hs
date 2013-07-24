@@ -11,6 +11,7 @@ module SpecHelper ( module Utils.Vigilance.Types
                   , module Test.Hspec
                   , module Test.Hspec.Expectations
                   , module Test.Hspec.QuickCheck
+                  , module Test.QuickCheck.Property.Common
                   , module Test.QuickCheck.Property.Monoid) where
 
 import Control.Applicative ( (<$>)
@@ -25,6 +26,7 @@ import Test.Hspec
 import Test.Hspec.Expectations
 import Test.Hspec.QuickCheck
 import Test.QuickCheck
+import Test.QuickCheck.Property.Common
 import Test.QuickCheck.Property.Monoid
 
 import Data.DeriveTH
@@ -35,6 +37,7 @@ $(derive makeArbitrary ''WatchState)
 $(derive makeArbitrary ''WatchInterval)
 $(derive makeArbitrary ''NotificationPreference)
 $(derive makeArbitrary ''TimeUnit)
+$(derive makeArbitrary ''ID)
 
 instance Arbitrary WatchReport where
   arbitrary = WatchReport <$> arbitrary
@@ -42,6 +45,13 @@ instance Arbitrary WatchReport where
 
 instance Arbitrary NewWatch where
   arbitrary = Watch <$> pure ()
+                    <*> genText
+                    <*> arbitrary
+                    <*> arbitrary
+                    <*> arbitrary
+
+instance Arbitrary EWatch where
+  arbitrary = Watch <$> arbitrary
                     <*> genText
                     <*> arbitrary
                     <*> arbitrary

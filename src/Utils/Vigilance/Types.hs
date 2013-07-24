@@ -4,19 +4,24 @@
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 module Utils.Vigilance.Types where
 
-import Control.Applicative ((<$>))
+import Control.Applicative ( (<$>)
+                           , (<*>)
+                           , pure)
 import Control.Lens hiding ((.=))
 import Control.Lens.TH
+import Data.Aeson
+import qualified Data.Attoparsec.Number as N
 import Data.Monoid
 import Data.SafeCopy ( base
                      , SafeCopy
                      , deriveSafeCopy)
 import Data.Table
-import Data.Time (UTCTime)
+import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Text (Text)
 import Data.Typeable (Typeable)
 
@@ -41,9 +46,21 @@ data WatchState = Active    |
 instance Monoid WatchState where
   mempty                = Paused
   mappend Paused Paused = Paused
-  mappend x Paused      = x
-  mappend Paused y      = y
-  mappend x y           = y
+  mappend x      Paused = x
+  mappend _      y      = y
+
+instance ToJSON WatchState where
+  toJSON Active    = String "active"
+  toJSON Paused    = String "paused"
+  toJSON Notifying = String "notifying"
+  toJSON Triggered = String "triggered"
+
+instance FromJSON WatchState where
+  parseJSON = withText "WatchState" parseWatchState
+    where parseWatchState "active"    = Active
+          parseWatchState "paused"    = Paused
+          parseWatchState "notifying" = Notifying
+          parseWatchState "triggered" = Triggered
 
 newtype EmailAddress = EmailAddress { _unEmailAddress :: Text } deriving (Show, Eq, SafeCopy, Typeable)
 
@@ -51,8 +68,26 @@ makeClassy ''EmailAddress
 
 data NotificationPreference = EmailNotification EmailAddress deriving (Show, Eq)
 
+instance ToJSON NotificationPreference where
+  toJSON (EmailNotification a) = object [ "type"    .= String "email"
+                                        , "address" .= String (a ^. unEmailAddress)]
+
+instance FromJSON NotificationPreference where
+  parseJSON = withObject "EmailNotification" parseEmail --TODO: more
+    where parseEmail obj = EmailNotification <$> obj .: "address" --TODO: NOT CORRECt
+
 data WatchReport = WatchReport { _wrState       :: WatchState
-                               , _wrLastCheckin :: Maybe UTCTime } deriving (Show, Eq)
+                               , _wrLastCheckin :: Maybe POSIXTime } deriving (Show, Eq)
+
+newtype POSIXWrapper = POSIXWrapper { unPOSIXWrapper :: POSIXTime }
+
+instance FromJSON POSIXWrapper where
+  parseJSON = withNumber "POSIXTime" parsePOSIXTime
+    where parsePOSIXTime (N.I i) = pure . POSIXWrapper . fromIntegral $ i
+          parsePOSIXTime _       = fail "Expected integer"
+
+instance ToJSON POSIXWrapper where
+  toJSON = Number . N.I . truncate . toRational . unPOSIXWrapper
 
 makeClassy ''WatchReport
 
@@ -67,6 +102,38 @@ makeLenses ''Watch
 
 type NewWatch = Watch ()
 type EWatch   = Watch ID
+
+instance ToJSON NewWatch where
+  toJSON w = object [ "id"            .= (w ^. watchId)
+                    , "name"          .= (w ^. watchName)
+                    , "interval"      .= (w ^. watchInterval)
+                    , "report"        .= (w ^. watchReport)
+                    , "notifications" .= (w ^. watchNotifications)
+                    , "name"          .= (w ^. watchName) ]
+
+instance FromJSON NewWatch where
+  parseJSON = withObject "NewWatch" parseNewWatch
+    where parseNewWatch obj = Watch <$> pure ()
+                                    <*> obj .: "name"
+                                    <*> obj .: "interval"
+                                    <*> obj .: "report"
+                                    <*> obj .: "notifications"
+
+instance ToJSON EWatch where
+  toJSON w = object [ "id"            .= (w ^. watchId)
+                    , "name"          .= (w ^. watchName)
+                    , "interval"      .= (w ^. watchInterval)
+                    , "report"        .= (w ^. watchReport)
+                    , "notifications" .= (w ^. watchNotifications)
+                    , "name"          .= (w ^. watchName) ]
+
+instance FromJSON EWatch where
+  parseJSON = withObject "EWatch" parseNewWatch
+    where parseNewWatch obj = Watch <$> obj .: "id"
+                                    <*> obj .: "name"
+                                    <*> obj .: "interval"
+                                    <*> obj .: "report"
+                                    <*> obj .: "notifications"
 
 type WatchTable = Table EWatch
 
@@ -88,7 +155,7 @@ instance Tabular EWatch where
 
   autoTab = autoIncrement watchId
 
-data AppState = AppState { _wTable :: WatchTable }
+data AppState = AppState { _wTable :: WatchTable } deriving (Typeable)
 
 makeLenses ''AppState
 
