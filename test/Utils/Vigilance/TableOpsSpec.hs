@@ -17,7 +17,7 @@ spec = do
     prop "watchLens finds records" $ \w newInterval ->
       let (w', table) = createWatch w emptyTable
           wId         = w' ^. watchId
-          table'      = watchLens wId table (watchInterval .~ newInterval)
+          table'      = watchLens (watchInterval .~ newInterval) wId table
       in (view watchInterval <$> findWatch wId table') == Just newInterval
   describe "acid events" $ do
     let acid = openAcidState $ AppState mempty

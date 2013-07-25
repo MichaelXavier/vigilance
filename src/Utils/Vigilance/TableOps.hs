@@ -28,6 +28,7 @@ import Data.Table ( insert'
                   , with
                   , empty
                   , deleteWith)
+import Data.Time.Clock.POSIX (POSIXTime)
 import Utils.Vigilance.Types
 
 createWatch :: NewWatch -> WatchTable -> (EWatch, WatchTable)
@@ -40,11 +41,23 @@ findWatch :: ID -> WatchTable -> Maybe EWatch
 findWatch i table = table ^. at i
 
 watchLens :: (Indexable ID p0, Profunctor p0)
-             => ID
+             => p0 EWatch EWatch
+             -> ID
              -> WatchTable
-             -> p0 EWatch EWatch
              -> WatchTable
-watchLens i table f = table & ix i %~ f
+watchLens f i table = table & ix i %~ f
+
+checkInWatch :: POSIXTime -> ID -> WatchTable -> WatchTable
+checkInWatch time = watchLens doCheckIn
+  where doCheckIn          = transitionState . setTime
+        setTime w          = w & watchWReport . wrLastCheckin .~ (Just time)
+        transitionState w  = w & watchWReport . wrState %~ updateState
+        updateState Paused = Paused
+        updateState _      = Active
+
+pauseWatch :: ID -> WatchTable -> WatchTable
+pauseWatch = watchLens pause
+  where pause w = w & watchWReport . wrState .~ Paused
 
 emptyTable :: WatchTable
 emptyTable = empty

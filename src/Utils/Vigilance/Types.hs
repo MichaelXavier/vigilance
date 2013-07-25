@@ -70,6 +70,7 @@ instance FromJSON TimeUnit where
           parseTimeUnit "days"    = pure Days
           parseTimeUnit "weeks"   = pure Weeks
           parseTimeUnit "years"   = pure Years
+          parseTimeUnit _         = fail "Unknown time unit"
 
 data WatchState = Active    |
                   Paused    |
