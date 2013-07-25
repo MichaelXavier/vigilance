@@ -1,14 +1,20 @@
+{-# LANGUAGE NoImplicitPrelude     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TemplateHaskell       #-}
 module Utils.Vigilance.Web.Handlers (routes) where
 
 import Utils.Vigilance.TableOps
 import Utils.Vigilance.Types
 
+import ClassyPrelude
 import Control.Lens
 import Control.Lens.TH
+import Control.Monad.Error.Class (throwError)
 import Data.ByteString (ByteString)
+import Data.ByteString.Char8 (readInt)
+import Data.Maybe (fromJust)
 import Data.Monoid (mempty)
 import Snap.Core
 import Snap.Extras.JSON ( reqJSON
@@ -29,7 +35,8 @@ instance HasAcid App AppState where
 
 routes :: [(ByteString, Handler App App ())]
 routes = [ ("watches", method POST createWatchR)
-         , ("watches/:id", method DELETE deleteWatchR) ]
+         , ("watches/:id", method DELETE deleteWatchR)
+         , ("watches/:id", method GET findWatchR) ]
 
 app :: SnapletInit App App
 app = makeSnaplet "vigilance" "Vigilence Web Server" Nothing $ do
@@ -38,10 +45,19 @@ app = makeSnaplet "vigilance" "Vigilence Web Server" Nothing $ do
     return $ App a
 
 createWatchR :: Handler App App ()
-createWatchR = do
-  watch  <- reqJSON
-  ewatch <- update $ CreateWatchEvent watch
-  writeJSON ewatch
+createWatchR = writeJSON =<< update . CreateWatchEvent =<< reqJSON
 
 deleteWatchR :: Handler App App ()
-deleteWatchR = undefined
+deleteWatchR = update . DeleteWatchEvent =<< getID
+
+findWatchR :: Handler App App ()
+findWatchR = writeJSON =<< query . FindWatchEvent =<< getID
+
+
+getID :: MonadSnap m => m ID
+getID = do p <- getParam "id"
+           let i = ID <$> (readInt' =<< p)
+           maybe pass return i
+
+readInt' :: ByteString -> Maybe Int
+readInt' = fmap fst . readInt
