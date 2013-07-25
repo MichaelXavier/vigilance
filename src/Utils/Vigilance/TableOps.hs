@@ -74,13 +74,17 @@ findWatchEvent :: ID -> Query AppState (Maybe EWatch)
 findWatchEvent i = view (wTable . findWatch')
   where findWatch' = to $ findWatch i
 
-checkInWatchEvent :: POSIXTime -> ID -> Query AppState ()
+checkInWatchEvent :: POSIXTime -> ID -> Update AppState ()
 checkInWatchEvent t i = wTable %= (checkInWatch t i)
+
+pauseWatchEvent :: ID -> Update AppState ()
+pauseWatchEvent i = wTable %= (pauseWatch i)
 
 $(makeAcidic ''AppState [ 'createWatchEvent
                         , 'deleteWatchEvent
                         , 'findWatchEvent
-                        , 'checkInWatchEvent ])
+                        , 'checkInWatchEvent
+                        , 'pauseWatchEvent ])
 
 createWatchS :: (UpdateEvent CreateWatchEvent, MonadIO m)
                 => AcidState (EventState CreateWatchEvent)
@@ -106,3 +110,9 @@ checkInWatchS :: (UpdateEvent CheckInWatchEvent, MonadIO m)
                 -> ID
                 -> m ()
 checkInWatchS acid t = update' acid . CheckInWatchEvent t
+
+pauseWatchS :: (UpdateEvent PauseWatchEvent, MonadIO m)
+                => AcidState (EventState PauseWatchEvent)
+                -> ID
+                -> m ()
+pauseWatchS acid = update' acid . PauseWatchEvent
