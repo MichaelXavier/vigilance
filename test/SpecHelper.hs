@@ -21,6 +21,7 @@ import Control.Lens
 import Data.Monoid
 import Data.Text ( Text
                  , pack)
+import Data.Time.Clock.POSIX (POSIXTime)
 import Utils.Vigilance.Types
 import Test.Hspec
 import Test.Hspec.Expectations
@@ -32,16 +33,15 @@ import Test.QuickCheck.Property.Monoid
 import Data.DeriveTH
 import Data.Derive.Arbitrary (makeArbitrary)
 
+instance Arbitrary POSIXTime where
+  arbitrary = fromInteger <$> arbitrary
+
 $(derive makeArbitrary ''WatchState)
 
 $(derive makeArbitrary ''WatchInterval)
 $(derive makeArbitrary ''NotificationPreference)
 $(derive makeArbitrary ''TimeUnit)
 $(derive makeArbitrary ''ID)
-
-instance Arbitrary WatchReport where
-  arbitrary = WatchReport <$> arbitrary
-                          <*> pure Nothing --FIXME
 
 instance Arbitrary NewWatch where
   arbitrary = Watch <$> pure ()

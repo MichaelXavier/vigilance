@@ -72,31 +72,6 @@ instance FromJSON TimeUnit where
           parseTimeUnit "years"   = pure Years
           parseTimeUnit _         = fail "Unknown time unit"
 
-data WatchState = Active    |
-                  Paused    |
-                  Notifying |
-                  Triggered deriving (Show, Eq)
-
-instance Monoid WatchState where
-  mempty                = Paused
-  mappend Paused Paused = Paused
-  mappend x      Paused = x
-  mappend _      y      = y
-
-instance ToJSON WatchState where
-  toJSON Active    = String "active"
-  toJSON Paused    = String "paused"
-  toJSON Notifying = String "notifying"
-  toJSON Triggered = String "triggered"
-
-instance FromJSON WatchState where
-  parseJSON = withText "WatchState" parseWatchState
-    where parseWatchState "active"    = pure Active
-          parseWatchState "paused"    = pure Paused
-          parseWatchState "notifying" = pure Notifying
-          parseWatchState "triggered" = pure Triggered
-          parseWatchState _           = fail "Invalid value"
-
 newtype EmailAddress = EmailAddress { _unEmailAddress :: Text } deriving ( Show
                                                                          , Eq
                                                                          , SafeCopy
@@ -116,20 +91,20 @@ instance FromJSON NotificationPreference where
   parseJSON = withObject "EmailNotification" parseEmail --TODO: more
     where parseEmail obj = EmailNotification <$> obj .: "address" --TODO: NOT CORRECt
 
-data WatchReport = WatchReport { _wrState       :: WatchState
-                               , _wrLastCheckin :: Maybe POSIXTime } deriving (Show, Eq)
-
-makeClassy ''WatchReport
-
-instance ToJSON WatchReport where
-  toJSON wr = object [ "state"        .= (wr ^. wrState)
-                     , "last_checkin" .= (POSIXWrapper <$> wr ^. wrLastCheckin)]
-
-instance FromJSON WatchReport where
-  parseJSON = withObject "WatchReport" parseWatchReport
-    where parseWatchReport obj = WatchReport <$> obj .:? "state" .!= mempty
-                                             <*> (unwrapTime <$> obj .:? "last_checkin")
-          unwrapTime = fmap unPOSIXWrapper
+--data WatchReport = WatchReport { _wrState       :: WatchState
+--                               , _wrLastCheckin :: Maybe POSIXTime } deriving (Show, Eq)
+--
+--makeClassy ''WatchReport
+--
+--instance ToJSON WatchReport where
+--  toJSON wr = object [ "state"        .= (wr ^. wrState)
+--                     , "last_checkin" .= (POSIXWrapper <$> wr ^. wrLastCheckin)]
+--
+--instance FromJSON WatchReport where
+--  parseJSON = withObject "WatchReport" parseWatchReport
+--    where parseWatchReport obj = WatchReport <$> obj .:? "state" .!= mempty
+--                                             <*> (unwrapTime <$> obj .:? "last_checkin")
+--          unwrapTime = fmap unPOSIXWrapper
 
 newtype POSIXWrapper = POSIXWrapper { unPOSIXWrapper :: POSIXTime }
 
@@ -141,12 +116,40 @@ instance FromJSON POSIXWrapper where
 instance ToJSON POSIXWrapper where
   toJSON = Number . N.I . truncate . toRational . unPOSIXWrapper
 
+data WatchState = Active { _lastCheckIn :: POSIXTime } |
+                  Paused                               |
+                  Notifying                            |
+                  Triggered deriving (Show, Eq)
+
+makeClassy ''WatchState
+
+instance Monoid WatchState where
+  mempty                = Paused
+  mappend Paused Paused = Paused
+  mappend x      Paused = x
+  mappend _      y      = y
+
+instance ToJSON WatchState where
+  toJSON (Active t) = object [ "name"          .= String "active"
+                             , "last_check_in" .= POSIXWrapper t ]
+  toJSON Paused     = object [ "name"          .= String "paused" ]
+  toJSON Notifying  = object [ "name"          .= String "notifying" ]
+  toJSON Triggered  = object [ "name"          .= String "triggered" ]
+
+instance FromJSON WatchState where
+  parseJSON = withObject "WatchState" parseWatchState
+    where parseWatchState obj = withText "state name" (parseStateFromName obj) =<< (obj .: "name")
+          parseStateFromName _ "paused"    = pure Paused
+          parseStateFromName _ "notifying" = pure Notifying
+          parseStateFromName _ "triggered" = pure Triggered
+          parseStateFromName obj "active" = Active <$> (unPOSIXWrapper <$> obj .: "last_check_in")
+          parseStateFromName _ _           = fail "Invalid value"
 
 --TODO: notification backend
 data Watch i = Watch { _watchId            :: i
                      , _watchName          :: Text
                      , _watchInterval      :: WatchInterval
-                     , _watchWReport       :: WatchReport
+                     , _watchWState        :: WatchState
                      , _watchNotifications :: [NotificationPreference] } deriving (Show, Eq, Typeable)
 
 makeLenses ''Watch
@@ -158,7 +161,7 @@ instance ToJSON a => ToJSON (Watch a) where
   toJSON w = object [ "id"            .= (w ^. watchId)
                     , "name"          .= (w ^. watchName)
                     , "interval"      .= (w ^. watchInterval)
-                    , "report"        .= (w ^. watchWReport)
+                    , "state"         .= (w ^. watchWState)
                     , "notifications" .= (w ^. watchNotifications)
                     , "name"          .= (w ^. watchName) ]
 
@@ -197,7 +200,6 @@ makeLenses ''AppState
 deriveSafeCopy 0 'base ''WatchState
 deriveSafeCopy 0 'base ''TimeUnit
 deriveSafeCopy 0 'base ''WatchInterval
-deriveSafeCopy 0 'base ''WatchReport
 deriveSafeCopy 0 'base ''Watch
 deriveSafeCopy 0 'base ''NotificationPreference
 deriveSafeCopy 0 'base ''AppState
