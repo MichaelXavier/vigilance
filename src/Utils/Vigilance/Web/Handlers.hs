@@ -51,8 +51,10 @@ deleteWatchR :: Handler App App ()
 deleteWatchR = update . DeleteWatchEvent =<< getID
 
 findWatchR :: Handler App App ()
-findWatchR = writeJSON =<< query . FindWatchEvent =<< getID
-
+findWatchR = do mWatch <- query . FindWatchEvent =<< getID
+                case mWatch of
+                  Just w  -> writeJSON w
+                  Nothing -> modifyResponse $ setResponseCode 404
 
 getID :: MonadSnap m => m ID
 getID = do p <- getParam "id"
