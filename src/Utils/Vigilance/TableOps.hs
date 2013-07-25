@@ -14,6 +14,12 @@ module Utils.Vigilance.TableOps ( createWatch
                                 , findWatchEvent
                                 , FindWatchEvent(..)
                                 , findWatchS
+                                , pauseWatchEvent
+                                , PauseWatchEvent(..)
+                                , pauseWatchS
+                                , checkInWatchEvent
+                                , CheckInWatchEvent(..)
+                                , checkInWatchS
                                 , watchLens
                                 , emptyTable) where
 
