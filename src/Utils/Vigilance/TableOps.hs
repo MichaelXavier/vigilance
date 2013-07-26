@@ -14,9 +14,11 @@ module Utils.Vigilance.TableOps ( createWatch
                                 , findWatchEvent
                                 , FindWatchEvent(..)
                                 , findWatchS
+                                , pauseWatch
                                 , pauseWatchEvent
                                 , PauseWatchEvent(..)
                                 , pauseWatchS
+                                , checkInWatch
                                 , checkInWatchEvent
                                 , CheckInWatchEvent(..)
                                 , checkInWatchS
@@ -55,15 +57,13 @@ watchLens f i table = table & ix i %~ f
 
 checkInWatch :: POSIXTime -> ID -> WatchTable -> WatchTable
 checkInWatch time = watchLens doCheckIn
-  where doCheckIn          = transitionState . setTime
-        setTime w          = w & watchWReport . wrLastCheckin .~ (Just time)
-        transitionState w  = w & watchWReport . wrState %~ updateState
+  where doCheckIn w        = w & watchWState %~ updateState
         updateState Paused = Paused
-        updateState _      = Active
+        updateState _      = Active time
 
 pauseWatch :: ID -> WatchTable -> WatchTable
 pauseWatch = watchLens pause
-  where pause w = w & watchWReport . wrState .~ Paused
+  where pause w = w & watchWState .~ Paused
 
 emptyTable :: WatchTable
 emptyTable = empty

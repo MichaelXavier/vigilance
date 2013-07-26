@@ -19,6 +19,28 @@ spec = do
           wId         = w' ^. watchId
           table'      = watchLens (watchInterval .~ newInterval) wId table
       in (view watchInterval <$> findWatch wId table') == Just newInterval
+  describe "pauseWatch" $ do
+    prop "it sets the state and nothing else" $ \w ->
+      let (w', table) = createWatch w emptyTable
+          wid         = w' ^. watchId
+          table'      = pauseWatch wid table
+      in findWatch wid table' == Just (w' { _watchWState = Paused })
+  describe "checkInWatch" $ do
+    prop "leaves paused watches unaltered" $ \w time ->
+      let (w', table) = createWatch w { _watchWState = Paused } emptyTable
+          wid         = w' ^. watchId
+          table'      = checkInWatch time wid table
+      in findWatch wid table' == Just w'
+
+    prop "updates non-paused watches to active with the given time" $ \w time ->
+      let ws = case w ^. watchWState of
+                 Paused -> Notifying
+                 x      -> x
+          (w', table) = createWatch w { _watchWState = ws } emptyTable
+          wid         = w' ^. watchId
+          table'      = checkInWatch time wid table
+      in findWatch wid table' == Just w' { _watchWState = Active time }
+
   describe "acid events" $ do
     let acid = openAcidState $ AppState mempty
 
