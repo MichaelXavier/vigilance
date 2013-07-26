@@ -6,6 +6,7 @@ module SpecHelper ( module Utils.Vigilance.Types
                   , (<$>)
                   , (<*>)
                   , pure
+                  , POSIXTime
                   , module Control.Lens
                   , module Data.Monoid
                   , module Test.Hspec

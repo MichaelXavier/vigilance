@@ -36,10 +36,10 @@ spec = do
       let ws = case w ^. watchWState of
                  Paused -> Notifying
                  x      -> x
-          (w', table) = createWatch w { _watchWState = ws } emptyTable
+          (w', table) = createWatch (w & watchWState .~ ws) emptyTable
           wid         = w' ^. watchId
           table'      = checkInWatch time wid table
-      in findWatch wid table' == Just w' { _watchWState = Active time }
+      in findWatch wid table' == Just (w' & watchWState .~ Active time)
 
   describe "acid events" $ do
     let acid = openAcidState $ AppState mempty

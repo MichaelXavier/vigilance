@@ -91,21 +91,6 @@ instance FromJSON NotificationPreference where
   parseJSON = withObject "EmailNotification" parseEmail --TODO: more
     where parseEmail obj = EmailNotification <$> obj .: "address" --TODO: NOT CORRECt
 
---data WatchReport = WatchReport { _wrState       :: WatchState
---                               , _wrLastCheckin :: Maybe POSIXTime } deriving (Show, Eq)
---
---makeClassy ''WatchReport
---
---instance ToJSON WatchReport where
---  toJSON wr = object [ "state"        .= (wr ^. wrState)
---                     , "last_checkin" .= (POSIXWrapper <$> wr ^. wrLastCheckin)]
---
---instance FromJSON WatchReport where
---  parseJSON = withObject "WatchReport" parseWatchReport
---    where parseWatchReport obj = WatchReport <$> obj .:? "state" .!= mempty
---                                             <*> (unwrapTime <$> obj .:? "last_checkin")
---          unwrapTime = fmap unPOSIXWrapper
-
 newtype POSIXWrapper = POSIXWrapper { unPOSIXWrapper :: POSIXTime }
 
 instance FromJSON POSIXWrapper where
