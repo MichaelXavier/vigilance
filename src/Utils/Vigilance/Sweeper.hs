@@ -1,4 +1,6 @@
-module Utils.Vigilance.Sweeper (expired) where
+module Utils.Vigilance.Sweeper ( expired
+                               , sweepWatch
+                               , expireWatch) where
 
 import Control.Lens
 
@@ -13,6 +15,16 @@ expired now w@Watch { _watchWState = Active last } = beyondCutoff
         beyondCutoff = now > cutoff
         interval     = fromInteger $ secondsInterval (w ^. watchInterval)
 expired _ _                                        = False
+
+expireWatch :: EWatch -> EWatch
+expireWatch w = w & watchWState %~ bumpState
+  where bumpState Triggered = Triggered
+        bumpState _         = Notifying
+
+sweepWatch :: POSIXTime -> EWatch -> EWatch
+sweepWatch t w
+  | expired t w = expireWatch w
+  | otherwise   = w
 
 secondsInterval :: WatchInterval -> Integer
 secondsInterval (Every n Seconds) = n

@@ -104,7 +104,7 @@ instance ToJSON POSIXWrapper where
 data WatchState = Active { _lastCheckIn :: POSIXTime } |
                   Paused                               |
                   Notifying                            |
-                  Triggered deriving (Show, Eq)
+                  Triggered deriving (Show, Eq, Ord) -- ehhhhhh
 
 makeClassy ''WatchState
 
@@ -180,18 +180,21 @@ type WatchTable = Table EWatch
 instance Tabular EWatch where
   type PKT EWatch = ID
   data Key k EWatch b where
-    WatchID :: Key Primary EWatch ID
-  data Tab EWatch i = WatchTable (i Primary ID)
+    WatchID     :: Key Primary   EWatch ID
+    WatchWState :: Key Supplemental EWatch WatchState
+  data Tab EWatch i = WatchTable (i Primary ID) (i Supplemental WatchState)
 
-  fetch WatchID = _watchId
+  fetch WatchID     = _watchId
+  fetch WatchWState = _watchWState
 
   primary             = WatchID
   primarily WatchID r = r
 
-  mkTab f = WatchTable <$> f WatchID
+  mkTab f = WatchTable <$> f WatchID <*> f WatchWState
 
-  forTab (WatchTable x) f      = WatchTable <$> f WatchID x
-  ixTab (WatchTable x) WatchID = x
+  forTab (WatchTable x y) f          = WatchTable <$> f WatchID x <*> f WatchWState y
+  ixTab (WatchTable x _) WatchID     = x
+  ixTab (WatchTable _ x) WatchWState = x
 
   autoTab = autoIncrement watchId
 

@@ -71,6 +71,13 @@ spec = do
       let w' = w & watchInterval .~ (Every 5 Seconds)
       in expired t (w & watchWState %~ bumpTime (-4)) `shouldBe` True
 
+  describe "sweepWatch" $ do
+    let t = 123
+    let w = baseWatch & watchWState .~ Active t
+
+    prop "does not affect unexpired watches" $ \time ->
+      sweepWatch time baseWatch == baseWatch
+
 baseWatch :: EWatch
 baseWatch = Watch (ID 1) "whatever" (Every 1 Seconds) mempty []
 

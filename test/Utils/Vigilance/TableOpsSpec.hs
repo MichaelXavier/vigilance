@@ -1,7 +1,9 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Utils.Vigilance.TableOpsSpec (spec) where
 
 import Control.Monad.State
 import Data.Acid.Memory.Pure
+import qualified Data.Table as T
 import Utils.Vigilance.TableOps
 import SpecHelper
 
@@ -54,6 +56,18 @@ spec = do
           (acid'')    = update_ acid' $ delete w'
           result      = query acid'' $ find w'
       in  result == Nothing
+
+
+  describe "sweepTable" $ do
+    prop "does not reduce or increase the size of the table" $ \watches t ->
+      let table = fromList watches
+      in T.count (sweepTable t table) == length watches
+    it "derp" $
+      let watches = [Watch {_watchId = (), _watchName = ";", _watchInterval = Every 2 Days, _watchWState = Paused, _watchNotifications = [EmailNotification (EmailAddress {_unEmailAddress = "8\DEL?]"})]},Watch {_watchId = (), _watchName = "yHAU", _watchInterval = Every 2 Seconds, _watchWState = Paused, _watchNotifications = [EmailNotification (EmailAddress {_unEmailAddress = "[ ]"})]}]
+          table   = fromList watches
+          t       = 5
+      --in T.count (sweepTable t table) `shouldBe` length watches
+      in T.count table `shouldBe` length watches
   where insert = CreateWatchEvent
         delete = DeleteWatchEvent . view watchId
         find   = FindWatchEvent . view watchId

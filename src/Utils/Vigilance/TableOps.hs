@@ -23,6 +23,8 @@ module Utils.Vigilance.TableOps ( createWatch
                                 , CheckInWatchEvent(..)
                                 , checkInWatchS
                                 , watchLens
+                                , sweepTable
+                                , fromList
                                 , emptyTable) where
 
 import Control.Lens
@@ -32,11 +34,14 @@ import Control.Monad.State ( get
                            , put)
 import Data.Acid
 import Data.Acid.Advanced (update', query')
+import Data.List (foldl')
 import Data.Table ( insert'
                   , with
+                  , rows'
                   , empty
                   , deleteWith)
 import Data.Time.Clock.POSIX (POSIXTime)
+import Utils.Vigilance.Sweeper (sweepWatch)
 import Utils.Vigilance.Types
 
 createWatch :: NewWatch -> WatchTable -> (EWatch, WatchTable)
@@ -65,8 +70,20 @@ pauseWatch :: ID -> WatchTable -> WatchTable
 pauseWatch = watchLens pause
   where pause w = w & watchWState .~ Paused
 
+sweepTable :: POSIXTime -> WatchTable -> WatchTable -- selecting operator seems like it must be existentially quantified
+--sweepTable time table = table & with WatchWState (matching) active . rows' %~ sweep
+sweepTable time table = table -- & rows' %~ sweep
+  where -- active = Active 0 -- haack
+        -- matching (Active _) (Active _) = True
+        -- matching x          y          = x == y
+        --sweep = sweepWatch time
+        sweep = id
+
 emptyTable :: WatchTable
 emptyTable = empty
+
+fromList :: [NewWatch] -> WatchTable
+fromList = foldl' (\table w -> snd $ createWatch w table) emptyTable
 
 -- ACID State
 -- this compiles and is mega slick but needs testing
