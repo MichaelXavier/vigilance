@@ -23,7 +23,7 @@ spec = do
       property $ eq $ propJSONParsing (T :: T (EWatch))
 
 
-propJSONParsing :: (FromJSON a, ToJSON a) => T a -> a -> Equal (Either String a)
+propJSONParsing :: (Show a, FromJSON a, ToJSON a) => T a -> a -> Equal (Either String a)
 propJSONParsing T x = parsed .==. Right x
-  where parsed = eitherDecode' str
+  where parsed =  eitherDecode' str
         str    = encode x

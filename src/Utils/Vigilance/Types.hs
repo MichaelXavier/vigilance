@@ -157,7 +157,7 @@ makeLenses ''Watch
 type NewWatch = Watch ()
 type EWatch   = Watch ID
 
-instance ToJSON a => ToJSON (Watch a) where
+instance ToJSON EWatch where
   toJSON w = object [ "id"            .= (w ^. watchId)
                     , "name"          .= (w ^. watchName)
                     , "interval"      .= (w ^. watchInterval)
@@ -165,12 +165,29 @@ instance ToJSON a => ToJSON (Watch a) where
                     , "notifications" .= (w ^. watchNotifications)
                     , "name"          .= (w ^. watchName) ]
 
-instance FromJSON a => FromJSON (Watch a) where
+
+instance FromJSON EWatch where
   parseJSON = withObject "Watch" parseNewWatch
     where parseNewWatch obj = Watch <$> obj .: "id"
                                     <*> obj .: "name"
                                     <*> obj .: "interval"
-                                    <*> obj .: "report"
+                                    <*> obj .: "state"
+                                    <*> obj .: "notifications"
+
+instance ToJSON NewWatch where
+  toJSON w = object [ "name"          .= (w ^. watchName)
+                    , "interval"      .= (w ^. watchInterval)
+                    , "state"         .= (w ^. watchWState)
+                    , "notifications" .= (w ^. watchNotifications)
+                    , "name"          .= (w ^. watchName) ]
+
+
+instance FromJSON NewWatch where
+  parseJSON = withObject "Watch" parseNewWatch
+    where parseNewWatch obj = Watch <$> pure ()
+                                    <*> obj .: "name"
+                                    <*> obj .: "interval"
+                                    <*> obj .: "state"
                                     <*> obj .: "notifications"
 
 type WatchTable = Table EWatch
