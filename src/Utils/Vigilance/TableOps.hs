@@ -18,6 +18,10 @@ module Utils.Vigilance.TableOps ( createWatch
                                 , pauseWatchEvent
                                 , PauseWatchEvent(..)
                                 , pauseWatchS
+                                , unPauseWatch
+                                , unPauseWatchEvent
+                                , UnPauseWatchEvent(..)
+                                , unPauseWatchS
                                 , checkInWatch
                                 , checkInWatchEvent
                                 , CheckInWatchEvent(..)
@@ -73,6 +77,12 @@ pauseWatch :: ID -> WatchTable -> WatchTable
 pauseWatch = watchLens pause
   where pause w = w & watchWState .~ Paused
 
+unPauseWatch :: POSIXTime -> ID -> WatchTable -> WatchTable
+unPauseWatch t = watchLens unPause
+  where unPause w = w & watchWState %~ updateState
+        updateState (Active newTime) = Active newTime
+        updateState _                = Active t
+
 sweepTable :: POSIXTime -> WatchTable -> WatchTable
 sweepTable time table = table & rows' %~ sweep
   where sweep = sweepWatch time
@@ -101,6 +111,9 @@ checkInWatchEvent t i = wTable %= (checkInWatch t i)
 pauseWatchEvent :: ID -> Update AppState ()
 pauseWatchEvent i = wTable %= (pauseWatch i)
 
+unPauseWatchEvent :: POSIXTime -> ID -> Update AppState ()
+unPauseWatchEvent t i = wTable %= (unPauseWatch t i)
+
 sweepTableEvent :: POSIXTime -> Update AppState ()
 sweepTableEvent t = wTable %= (sweepTable t)
 
@@ -109,6 +122,7 @@ $(makeAcidic ''AppState [ 'createWatchEvent
                         , 'findWatchEvent
                         , 'checkInWatchEvent
                         , 'pauseWatchEvent
+                        , 'unPauseWatchEvent
                         , 'sweepTableEvent])
 
 createWatchS :: (UpdateEvent CreateWatchEvent, MonadIO m)
@@ -141,6 +155,13 @@ pauseWatchS :: (UpdateEvent PauseWatchEvent, MonadIO m)
                 -> ID
                 -> m ()
 pauseWatchS acid = update' acid . PauseWatchEvent
+
+unPauseWatchS :: (UpdateEvent UnPauseWatchEvent, MonadIO m)
+                => AcidState (EventState UnPauseWatchEvent)
+                -> POSIXTime
+                -> ID
+                -> m ()
+unPauseWatchS acid t = update' acid . UnPauseWatchEvent t
 
 sweepTableS :: (UpdateEvent SweepTableEvent, MonadIO m)
                 => AcidState (EventState SweepTableEvent)

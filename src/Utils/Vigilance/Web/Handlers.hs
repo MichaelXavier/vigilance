@@ -11,11 +11,14 @@ import Utils.Vigilance.Types
 import ClassyPrelude
 import Control.Lens
 import Control.Lens.TH
+import Control.Monad ( liftM2
+                     , join )
 import Control.Monad.Error.Class (throwError)
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (readInt)
 import Data.Maybe (fromJust)
 import Data.Monoid (mempty)
+import Data.Time.Clock.POSIX (getPOSIXTime)
 import Snap.Core
 import Snap.Extras.JSON ( reqJSON
                         , writeJSON)
@@ -36,7 +39,10 @@ instance HasAcid App AppState where
 routes :: [(ByteString, Handler App App ())]
 routes = [ ("watches", method POST createWatchR)
          , ("watches/:id", method DELETE deleteWatchR)
-         , ("watches/:id", method GET findWatchR) ]
+         , ("watches/:id", method GET findWatchR)
+         , ("watches/:id/pause", method POST pauseWatchR)
+         , ("watches/:id/unpause", method POST unPauseWatchR)
+         , ("watches/:id/checkin", method POST checkInWatchR) ]
 
 app :: SnapletInit App App
 app = makeSnaplet "vigilance" "Vigilence Web Server" Nothing $ do
@@ -55,6 +61,15 @@ findWatchR = do mWatch <- query . FindWatchEvent =<< getID
                 case mWatch of
                   Just w  -> writeJSON w
                   Nothing -> modifyResponse $ setResponseCode 404
+
+pauseWatchR :: Handler App App ()
+pauseWatchR = update . PauseWatchEvent =<< getID
+
+unPauseWatchR :: Handler App App ()
+unPauseWatchR = update =<< UnPauseWatchEvent <$> liftIO getPOSIXTime <*> getID
+
+checkInWatchR :: Handler App App ()
+checkInWatchR = update =<< CheckInWatchEvent <$> liftIO getPOSIXTime <*> getID
 
 getID :: MonadSnap m => m ID
 getID = do p <- getParam "id"

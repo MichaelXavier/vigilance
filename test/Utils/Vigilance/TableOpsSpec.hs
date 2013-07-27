@@ -27,6 +27,21 @@ spec = do
           wid         = w' ^. watchId
           table'      = pauseWatch wid table
       in findWatch wid table' == Just (w' { _watchWState = Paused })
+  describe "unPauseWatch" $ do
+    prop "sets an non-active watch to active" $ \w t ->
+      let ws = case w ^. watchWState of
+                 Active _ -> Notifying
+                 x        -> x
+          (w', table) = createWatch (w & watchWState .~ ws) emptyTable
+          wid         = w' ^. watchId
+          table'      = unPauseWatch t wid table
+      in findWatch wid table' == Just (w' { _watchWState = Active t })
+    prop "leaves an active watch alone" $ \w currentT newT ->
+      let (w', table) = createWatch (w & watchWState .~ Active currentT) emptyTable
+          wid         = w' ^. watchId
+          table'      = unPauseWatch newT wid table
+      in findWatch wid table' == Just w'
+
   describe "checkInWatch" $ do
     prop "leaves paused watches unaltered" $ \w time ->
       let (w', table) = createWatch w { _watchWState = Paused } emptyTable
