@@ -1,6 +1,5 @@
 module Utils.Vigilance.Sweeper ( expired
-                               , sweepWatch
-                               , expireWatch) where
+                               , sweepWatch ) where
 
 import Control.Lens
 

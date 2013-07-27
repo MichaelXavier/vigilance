@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -7,6 +8,9 @@ module SpecHelper ( module Utils.Vigilance.Types
                   , (<*>)
                   , pure
                   , POSIXTime
+                  , baseWatch
+                  , baseNewWatch
+                  , bumpTime
                   , module Control.Lens
                   , module Data.Monoid
                   , module Test.Hspec
@@ -33,6 +37,16 @@ import Test.QuickCheck.Property.Monoid
 
 import Data.DeriveTH
 import Data.Derive.Arbitrary (makeArbitrary)
+
+baseWatch :: EWatch
+baseWatch = Watch (ID 1) "whatever" (Every 1 Seconds) mempty []
+
+baseNewWatch :: NewWatch
+baseNewWatch = Watch () "whatever" (Every 1 Seconds) mempty []
+
+bumpTime :: Integer -> WatchState -> WatchState
+bumpTime n (Active t) = Active (t + fromInteger n)
+bumpTime _ s          = s
 
 instance Arbitrary POSIXTime where
   arbitrary = fromInteger <$> arbitrary

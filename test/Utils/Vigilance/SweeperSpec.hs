@@ -78,9 +78,6 @@ spec = do
     prop "does not affect unexpired watches" $ \time ->
       sweepWatch time baseWatch == baseWatch
 
-baseWatch :: EWatch
-baseWatch = Watch (ID 1) "whatever" (Every 1 Seconds) mempty []
-
-bumpTime :: Integer -> WatchState -> WatchState
-bumpTime n (Active t) = Active (t + fromInteger n)
-bumpTime _ s          = s
+    it "sweeps expired watches" $
+      let w' = w & watchWState %~ bumpTime (-2)
+      in sweepWatch t w' ^. watchWState `shouldBe` Notifying

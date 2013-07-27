@@ -62,12 +62,22 @@ spec = do
     prop "does not reduce or increase the size of the table" $ \watches t ->
       let table = fromList watches
       in T.count (sweepTable t table) == length watches
-    it "derp" $
-      let watches = [Watch {_watchId = (), _watchName = ";", _watchInterval = Every 2 Days, _watchWState = Paused, _watchNotifications = [EmailNotification (EmailAddress {_unEmailAddress = "8\DEL?]"})]},Watch {_watchId = (), _watchName = "yHAU", _watchInterval = Every 2 Seconds, _watchWState = Paused, _watchNotifications = [EmailNotification (EmailAddress {_unEmailAddress = "[ ]"})]}]
-          table   = fromList watches
-          t       = 5
-      --in T.count (sweepTable t table) `shouldBe` length watches
-      in T.count table `shouldBe` length watches
+
+    prop "does nothing to an empty table" $ \t ->
+      (sweepTable t emptyTable) == emptyTable
+
+    it "does nothing when the items don't need to be sweeped" $
+      let table = fromList [baseNewWatch]
+      in (sweepTable 123 table) == table
+
+    it "sweeps expired watches" $
+      let w           = baseNewWatch & watchWState .~ (Active 123)
+          (w', table) = createWatch w emptyTable
+          table'      = sweepTable 125 table
+          w''         = findWatch (w' ^. watchId) table'
+          state'      = _watchWState <$> w''
+      in state' `shouldBe` Just Notifying
+
   where insert = CreateWatchEvent
         delete = DeleteWatchEvent . view watchId
         find   = FindWatchEvent . view watchId
