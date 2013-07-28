@@ -72,9 +72,9 @@ checkInWatchR :: Handler App App ()
 checkInWatchR = update =<< CheckInWatchEvent <$> liftIO getPOSIXTime <*> getID
 
 getID :: MonadSnap m => m ID
-getID = do p <- getParam "id"
-           let i = ID <$> (readInt' =<< p)
-           maybe pass return i
+getID = handleFailure . toID =<<  getParam "id"
+  where handleFailure = maybe pass return
+        toID p = ID <$> (readInt' =<< p)
 
 readInt' :: ByteString -> Maybe Int
 readInt' = fmap fst . readInt
