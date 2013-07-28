@@ -58,6 +58,22 @@ spec = do
           table'      = checkInWatch time wid table
       in findWatch wid table' == Just (w' & watchWState .~ Active time)
 
+  describe "getNotifying" $ do
+    prop "returns empty list on a table without notifying watches" $ \watches ->
+      let fixState Notifying = Paused
+          fixState x         = x
+          table              = fromList $ map (\w -> w & watchWState %~ fixState) watches
+      in getNotifying table == []
+
+    prop "returns only the notifying events" $ \watches n ->
+      let fixState Notifying = Paused
+          fixState x         = x
+          notNotifying       = map (\w -> w & watchWState %~ fixState) watches
+          notifying          = replicate n $ baseNewWatch & watchWState .~ Notifying
+          table              = fromList $ shuffleIn notNotifying notifying
+          result             = getNotifying table
+      in map removeId result == notifying
+
   describe "acid events" $ do
     let acid = openAcidState $ AppState mempty
 
@@ -96,3 +112,10 @@ spec = do
   where insert = CreateWatchEvent
         delete = DeleteWatchEvent . view watchId
         find   = FindWatchEvent . view watchId
+
+shuffleIn :: [a] -> [a] -> [a]
+shuffleIn xs = concatMap collapse . zip xs
+  where collapse (x, y) = [x, y]
+
+removeId :: EWatch -> NewWatch
+removeId w = w & watchId .~ ()

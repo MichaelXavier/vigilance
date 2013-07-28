@@ -32,6 +32,10 @@ module Utils.Vigilance.TableOps ( createWatch
                                 , SweepTableEvent(..)
                                 , sweepTableS
                                 , fromList
+                                , getNotifying
+                                , getNotifyingEvent
+                                , GetNotifyingEvent(..)
+                                , getNotifyingS
                                 , emptyTable) where
 
 import Control.Lens
@@ -47,6 +51,7 @@ import Data.Table ( insert'
                   , rows'
                   , empty
                   , deleteWith)
+import qualified Data.Table as T
 import Data.Time.Clock.POSIX (POSIXTime)
 import Utils.Vigilance.Sweeper (sweepWatch)
 import Utils.Vigilance.Types
@@ -87,6 +92,21 @@ sweepTable :: POSIXTime -> WatchTable -> WatchTable
 sweepTable time table = table & rows' %~ sweep
   where sweep = sweepWatch time
 
+getNotifying :: WatchTable -> [EWatch]
+getNotifying table = table ^.. with WatchWState (==) Notifying . rows'
+
+--TODO: also scope by state
+-- hack, see https://github.com/ekmett/tables/issues/6
+-- so not performant
+completeNotifying :: [ID] -> WatchTable -> WatchTable
+completeNotifying = flip $ foldl' updateOne
+--completeNotifying ids table = table & T.withAny WatchID ids . T.rows %~ updateState
+--completeNotifying ids table = table & T.withAny (toListOf folded . T.fetch WatchID) ids . rows' %~ updateState
+  where updateState :: EWatch -> EWatch
+        updateState w = w & watchWState .~ Notifying
+        updateOne :: WatchTable -> ID -> WatchTable
+        updateOne = flip $ watchLens updateState
+
 emptyTable :: WatchTable
 emptyTable = empty
 
@@ -117,13 +137,17 @@ unPauseWatchEvent t i = wTable %= (unPauseWatch t i)
 sweepTableEvent :: POSIXTime -> Update AppState ()
 sweepTableEvent t = wTable %= (sweepTable t)
 
+getNotifyingEvent :: Query AppState [EWatch]
+getNotifyingEvent = view (wTable . to getNotifying)
+
 $(makeAcidic ''AppState [ 'createWatchEvent
                         , 'deleteWatchEvent
                         , 'findWatchEvent
                         , 'checkInWatchEvent
                         , 'pauseWatchEvent
                         , 'unPauseWatchEvent
-                        , 'sweepTableEvent])
+                        , 'sweepTableEvent
+                        , 'getNotifyingEvent])
 
 createWatchS :: (UpdateEvent CreateWatchEvent, MonadIO m)
                 => AcidState (EventState CreateWatchEvent)
@@ -168,3 +192,8 @@ sweepTableS :: (UpdateEvent SweepTableEvent, MonadIO m)
                 -> POSIXTime
                 -> m ()
 sweepTableS acid = update' acid . SweepTableEvent
+
+getNotifyingS :: (QueryEvent GetNotifyingEvent, MonadIO m)
+              => AcidState (EventState GetNotifyingEvent)
+              -> m [EWatch]
+getNotifyingS acid = query' acid $ GetNotifyingEvent
