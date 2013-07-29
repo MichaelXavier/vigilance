@@ -7,6 +7,8 @@ import qualified Data.Table as T
 import Utils.Vigilance.TableOps
 import SpecHelper
 
+import Debug.Trace
+
 spec :: Spec
 spec = do
   describe "table properties" $ do
@@ -69,10 +71,36 @@ spec = do
       let fixState Notifying = Paused
           fixState x         = x
           notNotifying       = map (\w -> w & watchWState %~ fixState) watches
-          notifying          = replicate n $ baseNewWatch & watchWState .~ Notifying
+          notifying          = replicate (min n 100) $ baseNewWatch & watchWState .~ Notifying
           table              = fromList $ shuffleIn notNotifying notifying
           result             = getNotifying table
-      in map removeId result == notifying
+      in (map removeId result) == notifying
+
+  -- dog slow
+  describe "completeNotifying" $ do
+    prop "it does nothing when given bogus ids" $ \watches ids ->
+      let table    = fromList $ take 10 watches
+          bogusIds = map (negate . abs) ids
+      in completeNotifying bogusIds table == table
+
+    prop "it does nothing when no ids" $ \watches ->
+      let table    = fromList $ take 10 watches
+      in completeNotifying [] table == table
+
+    prop "it only triggers watches that are in the id list AND notifying" $ \watches ->
+      let notifying    = filter (\w -> w ^. watchWState == Notifying) watches
+          table        = fromList watches
+          allIds       = table ^.. T.rows' . watchId
+          table'       = completeNotifying allIds table
+          nowTriggered = table' ^.. T.with WatchWState (==) Triggered . T.rows'
+      in (map removeId nowTriggered) == notifying
+
+    prop "notifying leaves no remaining watches notifying when all specified" $ \watches ->
+      let notifying    = filter (\w -> w ^. watchWState == Notifying) watches
+          table        = fromList watches
+          allIds       = table ^.. T.rows' . watchId
+          table'       = completeNotifying allIds table
+      in getNotifying table' == []
 
   describe "acid events" $ do
     let acid = openAcidState $ AppState mempty
@@ -114,8 +142,9 @@ spec = do
         find   = FindWatchEvent . view watchId
 
 shuffleIn :: [a] -> [a] -> [a]
-shuffleIn xs = concatMap collapse . zip xs
-  where collapse (x, y) = [x, y]
+shuffleIn (x:xs) (y:ys) = x:y:shuffleIn xs ys
+shuffleIn [] ys         = ys
+shuffleIn xs []         = xs
 
 removeId :: EWatch -> NewWatch
 removeId w = w & watchId .~ ()

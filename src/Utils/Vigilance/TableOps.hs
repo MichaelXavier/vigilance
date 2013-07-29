@@ -31,11 +31,12 @@ module Utils.Vigilance.TableOps ( createWatch
                                 , sweepTableEvent
                                 , SweepTableEvent(..)
                                 , sweepTableS
-                                , fromList
                                 , getNotifying
                                 , getNotifyingEvent
                                 , GetNotifyingEvent(..)
                                 , getNotifyingS
+                                , completeNotifying
+                                , fromList
                                 , emptyTable) where
 
 import Control.Lens
@@ -99,11 +100,12 @@ getNotifying table = table ^.. with WatchWState (==) Notifying . rows'
 -- hack, see https://github.com/ekmett/tables/issues/6
 -- so not performant
 completeNotifying :: [ID] -> WatchTable -> WatchTable
-completeNotifying = flip $ foldl' updateOne
---completeNotifying ids table = table & T.withAny WatchID ids . T.rows %~ updateState
+--completeNotifying ids table = foldl' updateOne table ids
+--completeNotifying ids table = table & with WatchWState (==) Notifying . T.withAny WatchID ids . T.rows' %~ updateState
+completeNotifying ids table = table & with WatchWState (==) Notifying . T.withAny (toListOf folded . T.fetch WatchID) ids . rows' %~ updateState
 --completeNotifying ids table = table & T.withAny (toListOf folded . T.fetch WatchID) ids . rows' %~ updateState
   where updateState :: EWatch -> EWatch
-        updateState w = w & watchWState .~ Notifying
+        updateState w = w & watchWState .~ Triggered
         updateOne :: WatchTable -> ID -> WatchTable
         updateOne = flip $ watchLens updateState
 
