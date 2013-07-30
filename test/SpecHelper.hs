@@ -11,6 +11,7 @@ module SpecHelper ( module Utils.Vigilance.Types
                   , baseWatch
                   , baseNewWatch
                   , bumpTime
+                  , NonEmptyList(..)
                   , module Control.Lens
                   , module Data.Monoid
                   , module Test.Hspec

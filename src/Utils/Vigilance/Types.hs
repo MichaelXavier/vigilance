@@ -74,6 +74,7 @@ instance FromJSON TimeUnit where
 
 newtype EmailAddress = EmailAddress { _unEmailAddress :: Text } deriving ( Show
                                                                          , Eq
+                                                                         , Ord
                                                                          , SafeCopy
                                                                          , Typeable
                                                                          , ToJSON

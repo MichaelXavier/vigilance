@@ -11,8 +11,6 @@ import Utils.Vigilance.Types
 import ClassyPrelude
 import Control.Lens
 import Control.Lens.TH
-import Control.Monad ( liftM2
-                     , join )
 import Control.Monad.Error.Class (throwError)
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (readInt)
