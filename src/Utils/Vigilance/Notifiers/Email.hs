@@ -43,7 +43,7 @@ generateEmails watches ctx = M.elems $ M.mapWithKey createMail groupedByEmail --
                   | otherwise      = [qc|{watchCount} watch|] :: Text
                 watchCount = length ws
         from :: Address
-        from = e2a $ ctx ^. fromEmail -- ehhhhh
+        from = ctx ^. fromEmail . to e2a
 
 mailPart :: [EWatch] -> Part
 mailPart ws =  Part "text/plain; charset=utf-8" QuotedPrintableText Nothing [] (bodyLBS ws)
