@@ -34,11 +34,16 @@ notify watches = do mails <- generateEmails <$> pure watches <*> ask
 generateEmails :: [EWatch] -> EmailContext -> [Mail]
 generateEmails watches ctx = M.elems $ M.mapWithKey createMail groupedByEmail -- ehhhhh
   where groupedByEmail = M.fromListWith mappend $ concatMap watchesWithEmails watches
-        createMail toAddr ws = (emptyMail from) { mailTo    = [e2a toAddr]
-                                                , mailParts = [[mailPart ws]] }
+        createMail toAddr ws = (emptyMail from) { mailTo      = [e2a toAddr]
+                                                , mailHeaders = [("Subject", subject)]
+                                                , mailParts   = [[mailPart ws]] }
+          where subject = [iTrim|Vigilence notification ${watchCount} activated|]
+                count
+                  | watchCount > 1 = [iTrim|$(watchCount) watches|]
+                  | otherwise      = [iTrim|$(watchCount) watch|]
+                watchCount = length ws
         from :: Address
         from = e2a $ ctx ^. fromEmail -- ehhhhh
-        --TODO: subject
 
 mailPart :: [EWatch] -> Part
 mailPart ws =  Part "text/plain; charset=utf-8" QuotedPrintableText Nothing [] (bodyLBS ws)
@@ -53,7 +58,9 @@ Sincerely,
 Vigilence
   |]
   where watchSummary = mconcat $ map summarize ws
-        summarize w  = w ^. watchName --TODO: more complete
+        summarize w  = [iTrim|- ${w ^. watchName} (${interval})|] :: LBS.ByteString --TODO: more complete 
+          where interval :: LBS.ByteString
+                interval = w ^. watchInterval . to (encodeUtf8 . show)
 
 watchesWithEmails :: EWatch -> [(EmailAddress, [EWatch])]
 watchesWithEmails w = zip emails (repeat [w] :: [[EWatch]])
