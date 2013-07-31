@@ -15,7 +15,7 @@ import System.Log.FastLogger (Logger, loggerPutStr, LogStr(LB))
 import Utils.Vigilance.Types
 
 -- maybe error return type
-notify :: [EWatch] -> ReaderT Logger IO ()
+notify :: Notifier Logger
 notify watches = do logger <- ask
                     lift $ loggerPutStr logger formattedWatches
   where formattedWatches = map format watches

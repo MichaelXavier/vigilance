@@ -27,7 +27,7 @@ data EmailContext = EmailContext { _fromEmail :: EmailAddress } deriving (Show, 
 
 makeClassy ''EmailContext
 
-notify :: [EWatch] -> ReaderT EmailContext IO ()
+notify :: Notifier EmailContext
 notify watches = do mails <- generateEmails <$> pure watches <*> ask
                     lift $ mapM_ renderSendMail mails
 

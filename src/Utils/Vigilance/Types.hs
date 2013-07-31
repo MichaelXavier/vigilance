@@ -14,6 +14,7 @@ import Control.Applicative ( (<$>)
                            , pure)
 import Control.Lens hiding ((.=))
 import Control.Lens.TH
+import Control.Monad.Reader (ReaderT)
 import Data.Aeson
 import qualified Data.Attoparsec.Number as N
 import Data.Monoid
@@ -199,7 +200,10 @@ instance Tabular EWatch where
 
   autoTab = autoIncrement watchId
 
+type Notifier r = [EWatch] -> ReaderT r IO ()
+
 data AppState = AppState { _wTable :: WatchTable } deriving (Typeable)
+
 
 makeLenses ''AppState
 
