@@ -22,7 +22,7 @@ spec = do
                     , watchForEmails ["bar@baz.com"] ]
           emails  = generateEmails watches ctx
       in map (map addressEmail . mailTo) emails `shouldBe` [["bar@baz.com"], ["foo@bar.com"]]
-    it "groups into emails by watch preferences" $
+    it "includes a description of the watch" $
       let watch = watchForEmails ["bar@baz.com"]
           email:_  = generateEmails [watch] ctx
       in "- whatever (Every 1 Seconds)" `shouldBeIncludedInBodyOf` email
