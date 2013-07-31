@@ -56,11 +56,11 @@ instance Arbitrary POSIXTime where
   arbitrary = fromInteger <$> arbitrary
 
 $(derive makeArbitrary ''WatchState)
-
 $(derive makeArbitrary ''WatchInterval)
 $(derive makeArbitrary ''NotificationPreference)
 $(derive makeArbitrary ''TimeUnit)
 $(derive makeArbitrary ''ID)
+$(derive makeArbitrary ''Config)
 
 instance Arbitrary NewWatch where
   arbitrary = Watch <$> pure ()

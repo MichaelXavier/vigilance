@@ -203,8 +203,29 @@ type Notifier = [EWatch] -> IO ()
 
 data AppState = AppState { _wTable :: WatchTable } deriving (Typeable)
 
-
 makeLenses ''AppState
+
+data Config = Config { _configAcidPath  :: Maybe FilePath
+                     , _configFromEmail :: Maybe EmailAddress
+                     , _configLogPath   :: FilePath } deriving (Show, Eq)
+
+makeClassy ''Config
+
+instance Monoid Config where
+  mempty = Config Nothing Nothing defaultLogPath
+  Config pa ea la `mappend` Config pb eb lb = Config (chooseJust pa pb)
+                                                     (chooseJust ea eb)
+                                                     choosePath
+    where chooseJust a@(Just _) b = a
+          chooseJust _ b          = b
+          choosePath
+            | la == defaultLogPath = lb
+            | lb == defaultLogPath = la
+            | otherwise            = lb
+
+defaultLogPath :: FilePath
+defaultLogPath = "log/vigilance.log"
+
 
 deriveSafeCopy 0 'base ''WatchState
 deriveSafeCopy 0 'base ''TimeUnit
