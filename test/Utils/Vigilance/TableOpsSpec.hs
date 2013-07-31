@@ -102,6 +102,7 @@ spec = do
           table'       = completeNotifying allIds table
       in getNotifying table' == []
 
+  --TODO: just use the createWatchS and the like here instead?
   describe "acid events" $ do
     let acid = openAcidState $ AppState mempty
 
