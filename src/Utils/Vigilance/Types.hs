@@ -37,7 +37,7 @@ newtype ID = ID { _unID :: Int } deriving ( Show
 
 makeClassy ''ID
 
-data WatchInterval = Every Integer TimeUnit deriving (Show, Eq)
+data WatchInterval = Every Integer TimeUnit deriving (Show, Eq, Typeable)
 
 instance ToJSON WatchInterval where
   toJSON (Every n u) = Array $ V.fromList [toJSON n, toJSON u]

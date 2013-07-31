@@ -13,6 +13,7 @@ module SpecHelper ( module Utils.Vigilance.Types
                   , bumpTime
                   , NonEmptyList(..)
                   , Text
+                  , module Network.Mail.Mime
                   , module Control.Lens
                   , module Data.Monoid
                   , module Test.Hspec
@@ -25,20 +26,21 @@ import Control.Applicative ( (<$>)
                            , (<*>)
                            , pure)
 import Control.Lens
+import Data.DeriveTH
+import Data.Derive.Arbitrary (makeArbitrary)
 import Data.Monoid
 import Data.Text ( Text
                  , pack)
 import Data.Time.Clock.POSIX (POSIXTime)
-import Utils.Vigilance.Types
+import Network.Mail.Mime
 import Test.Hspec
 import Test.Hspec.Expectations
 import Test.Hspec.QuickCheck
 import Test.QuickCheck
 import Test.QuickCheck.Property.Common
 import Test.QuickCheck.Property.Monoid
+import Utils.Vigilance.Types
 
-import Data.DeriveTH
-import Data.Derive.Arbitrary (makeArbitrary)
 
 baseWatch :: EWatch
 baseWatch = Watch (ID 1) "whatever" (Every 1 Seconds) mempty []

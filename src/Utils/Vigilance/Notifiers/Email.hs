@@ -58,9 +58,9 @@ Sincerely,
 Vigilence
   |]
   where watchSummary = mconcat $ map summarize ws
-        summarize w  = [iTrim|- ${w ^. watchName} (${interval})|] :: LBS.ByteString --TODO: more complete 
-          where interval :: LBS.ByteString
-                interval = w ^. watchInterval . to (encodeUtf8 . show)
+        summarize w  = [iTrim|- ${name} (${interval})|] :: LBS.ByteString
+          where interval = w ^. watchInterval
+                name     = w ^. watchName . to unpack
 
 watchesWithEmails :: EWatch -> [(EmailAddress, [EWatch])]
 watchesWithEmails w = zip emails (repeat [w] :: [[EWatch]])
