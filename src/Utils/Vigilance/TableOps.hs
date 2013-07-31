@@ -36,6 +36,9 @@ module Utils.Vigilance.TableOps ( createWatch
                                 , GetNotifyingEvent(..)
                                 , getNotifyingS
                                 , completeNotifying
+                                , completeNotifyingEvent
+                                , CompleteNotifyingEvent(..)
+                                , completeNotifyingS
                                 , fromList
                                 , emptyTable) where
 
@@ -142,6 +145,9 @@ sweepTableEvent t = wTable %= (sweepTable t)
 getNotifyingEvent :: Query AppState [EWatch]
 getNotifyingEvent = view (wTable . to getNotifying)
 
+completeNotifyingEvent :: [ID] -> Update AppState ()
+completeNotifyingEvent is = wTable %= (completeNotifying is)
+
 $(makeAcidic ''AppState [ 'createWatchEvent
                         , 'deleteWatchEvent
                         , 'findWatchEvent
@@ -149,7 +155,8 @@ $(makeAcidic ''AppState [ 'createWatchEvent
                         , 'pauseWatchEvent
                         , 'unPauseWatchEvent
                         , 'sweepTableEvent
-                        , 'getNotifyingEvent])
+                        , 'getNotifyingEvent
+                        , 'completeNotifyingEvent])
 
 createWatchS :: (UpdateEvent CreateWatchEvent, MonadIO m)
                 => AcidState (EventState CreateWatchEvent)
@@ -199,3 +206,9 @@ getNotifyingS :: (QueryEvent GetNotifyingEvent, MonadIO m)
               => AcidState (EventState GetNotifyingEvent)
               -> m [EWatch]
 getNotifyingS acid = query' acid $ GetNotifyingEvent
+
+completeNotifyingS :: (UpdateEvent CompleteNotifyingEvent, MonadIO m)
+                => AcidState (EventState CompleteNotifyingEvent)
+                -> [ID]
+                -> m ()
+completeNotifyingS acid = update' acid . CompleteNotifyingEvent
