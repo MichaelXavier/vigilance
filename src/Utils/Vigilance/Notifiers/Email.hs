@@ -10,7 +10,6 @@ module Utils.Vigilance.Notifiers.Email ( notify
 
 import ClassyPrelude
 import Control.Lens
-import Control.Monad.Reader (ReaderT, ask)
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Map.Lazy as M
 import Text.InterpolatedString.Perl6 (qc)
@@ -27,9 +26,9 @@ data EmailContext = EmailContext { _fromEmail :: EmailAddress } deriving (Show, 
 
 makeClassy ''EmailContext
 
-notify :: Notifier EmailContext
-notify watches = do mails <- generateEmails <$> pure watches <*> ask
-                    lift $ mapM_ renderSendMail mails
+notify :: EmailContext -> Notifier
+notify ctx watches = mapM_ renderSendMail mails
+  where mails = generateEmails watches ctx
 
 generateEmails :: [EWatch] -> EmailContext -> [Mail]
 generateEmails watches ctx = M.elems $ M.mapWithKey createMail groupedByEmail -- ehhhhh
