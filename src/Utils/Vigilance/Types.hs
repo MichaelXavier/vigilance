@@ -44,7 +44,7 @@ instance ToJSON WatchInterval where
   
 instance FromJSON WatchInterval where
   parseJSON = withArray "WatchInterval" $ parseWatchInterval . V.toList
-    where parseWatchInterval [n@(Number (N.I _)), s@(String _)] = Every <$> parseJSON n <*> parseJSON s
+    where parseWatchInterval [Number (N.I n), s@(String _)] = Every <$> pure n <*> parseJSON s -- just get it out of the N.I and call pure?
           parseWatchInterval _                              = fail "expecting a pair of integer and string"
 
 data TimeUnit = Seconds |
@@ -201,31 +201,34 @@ instance Tabular EWatch where
 
 type Notifier = [EWatch] -> IO ()
 
-data AppState = AppState { _wTable :: WatchTable } deriving (Typeable)
+newtype AppState = AppState { _wTable :: WatchTable } deriving (Typeable)
 
 makeLenses ''AppState
 
-data Config = Config { _configAcidPath  :: Maybe FilePath
+--TODO: http port
+data Config = Config { _configAcidPath  :: FilePath
                      , _configFromEmail :: Maybe EmailAddress
                      , _configLogPath   :: FilePath } deriving (Show, Eq)
 
 makeClassy ''Config
 
 instance Monoid Config where
-  mempty = Config Nothing Nothing defaultLogPath
-  Config pa ea la `mappend` Config pb eb lb = Config (chooseJust pa pb)
+  mempty = Config defaultAcidPath Nothing defaultLogPath
+  Config pa ea la `mappend` Config pb eb lb = Config (nonDefault defaultAcidPath pa pb)
                                                      (chooseJust ea eb)
-                                                     choosePath
+                                                     (nonDefault defaultLogPath la lb)
     where chooseJust a@(Just _) b = a
           chooseJust _ b          = b
-          choosePath
-            | la == defaultLogPath = lb
-            | lb == defaultLogPath = la
-            | otherwise            = lb
+          nonDefault defValue a b
+            | a == defaultLogPath = b
+            | b == defaultLogPath = a
+            | otherwise           = b
 
 defaultLogPath :: FilePath
 defaultLogPath = "log/vigilance.log"
 
+defaultAcidPath :: FilePath
+defaultAcidPath = "state/AppState"
 
 deriveSafeCopy 0 'base ''WatchState
 deriveSafeCopy 0 'base ''TimeUnit

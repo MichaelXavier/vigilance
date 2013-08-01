@@ -3,7 +3,8 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TemplateHaskell       #-}
-module Utils.Vigilance.Web.Handlers (routes) where
+module Utils.Vigilance.Web.Handlers ( app
+                                    , runServer) where
 
 import Utils.Vigilance.TableOps
 import Utils.Vigilance.Types
@@ -18,11 +19,13 @@ import Data.Maybe (fromJust)
 import Data.Monoid (mempty)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Snap.Core
+import Snap.Snaplet (serveSnaplet)
+import Snap.Http.Server.Config (defaultConfig)
 import Snap.Extras.JSON ( reqJSON
                         , writeJSON)
 import Snap.Snaplet
 import Snap.Snaplet.AcidState ( Acid
-                              , acidInit
+                              , acidInit'
                               , HasAcid(..)
                               , update
                               , query)
@@ -42,11 +45,16 @@ routes = [ ("watches", method POST createWatchR)
          , ("watches/:id/unpause", method POST unPauseWatchR)
          , ("watches/:id/checkin", method POST checkInWatchR) ]
 
-app :: SnapletInit App App
-app = makeSnaplet "vigilance" "Vigilence Web Server" Nothing $ do
-    a <- nestSnaplet "acid" acid $ acidInit (AppState mempty) -- TODO: in-memory
-    addRoutes routes
-    return $ App a
+app :: Config -> SnapletInit App App
+app cfg = makeSnaplet "vigilance" "Vigilence Web Server" Nothing $ do
+  a <- nestSnaplet "acid" acid openAcid
+  addRoutes routes
+  return $ App a
+  where openAcid = acidInit' acidPath (AppState mempty) -- TODO: in-memory
+        acidPath = cfg ^. configAcidPath
+
+runServer :: Config -> IO ()
+runServer = serveSnaplet defaultConfig . app
 
 createWatchR :: Handler App App ()
 createWatchR = writeJSON =<< update . CreateWatchEvent =<< reqJSON

@@ -1,6 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+--TODO: split Logger and openLogger export into a separate module
 module Utils.Vigilance.Notifiers.Log ( notify
+                                     , Logger
+                                     , loggerPutStr
+                                     , LogStr(LB)
                                      , openLogger) where
 
 import ClassyPrelude hiding (FilePath)
