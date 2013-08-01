@@ -8,8 +8,3 @@ spec :: Spec
 spec = do
   describe "configNotifiers" $ do
     it "always generates a logger" $ pending
-      
-
-
-baseConfig :: Config
-baseConfig = Config Nothing Nothing
