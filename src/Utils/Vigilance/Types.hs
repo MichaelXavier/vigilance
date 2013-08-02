@@ -12,6 +12,8 @@ module Utils.Vigilance.Types where
 import Control.Applicative ( (<$>)
                            , (<*>)
                            , pure)
+import Control.Concurrent.Chan (Chan)
+import Control.Monad.Reader (ReaderT)
 import Control.Lens hiding ((.=))
 import Control.Lens.TH
 import Data.Aeson
@@ -25,6 +27,7 @@ import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Text (Text)
 import Data.Typeable (Typeable)
 import qualified Data.Vector as V
+import System.Log.FastLogger (LogStr)
 
 newtype ID = ID { _unID :: Int } deriving ( Show
                                           , Eq
@@ -212,6 +215,7 @@ data Config = Config { _configAcidPath  :: FilePath
 
 makeClassy ''Config
 
+-- this is unsound
 instance Monoid Config where
   mempty = Config defaultAcidPath Nothing defaultLogPath
   Config pa ea la `mappend` Config pb eb lb = Config (nonDefault defaultAcidPath pa pb)
@@ -229,6 +233,10 @@ defaultLogPath = "log/vigilance.log"
 
 defaultAcidPath :: FilePath
 defaultAcidPath = "state/AppState"
+
+-- should i use chan, tmchan?
+type LogChan = Chan [LogStr]
+type LogCtx m a = ReaderT LogChan m a
 
 deriveSafeCopy 0 'base ''WatchState
 deriveSafeCopy 0 'base ''TimeUnit

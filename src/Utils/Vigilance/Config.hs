@@ -8,6 +8,7 @@ import ClassyPrelude hiding (FilePath)
 import Control.Applicative ( (<$>)
                            , (<*>) )
 import Control.Monad -- ((<=<))
+import Control.Monad.Reader (ask)
 import Control.Lens
 import qualified Data.Configurator as C
 import qualified Data.Configurator.Types as CT
@@ -17,9 +18,8 @@ import qualified Utils.Vigilance.Notifiers.Email as E
 import qualified Utils.Vigilance.Notifiers.Log   as L
 import Utils.Vigilance.Types
 
-configNotifiers :: Config -> IO [Notifier]
-configNotifiers cfg = do logger      <- L.openLogger $ cfg ^. configLogPath
-                         let logNotifier    = L.notify logger
+configNotifiers :: Config -> LogCtx IO [Notifier]
+configNotifiers cfg = do logNotifier        <- L.notify <$> ask
                          let mEmailNotifier = E.notify . E.EmailContext <$> cfg ^. configFromEmail
                          return $ catMaybes [Just logNotifier, mEmailNotifier]
 

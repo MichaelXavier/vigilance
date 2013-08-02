@@ -1,36 +1,20 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 --TODO: split Logger and openLogger export into a separate module
-module Utils.Vigilance.Notifiers.Log ( notify
-                                     , Logger
-                                     , loggerPutStr
-                                     , LogStr(LB)
-                                     , openLogger) where
+module Utils.Vigilance.Notifiers.Log ( notify ) where
 
-import ClassyPrelude hiding (FilePath)
-import Control.Applicative ( (<$>)
-                           , (<*>)
-                           , pure )
+import ClassyPrelude
 import Control.Lens
-import GHC.IO (FilePath)
 import Data.Monoid (mconcat)
-import System.IO (openFile
-                 , IOMode(AppendMode))
-import System.Log.FastLogger ( Logger
-                             , mkLogger
-                             , loggerPutStr
-                             , LogStr(LB))
+import System.Log.FastLogger ( LogStr(LB) ) --todo: reexport from types
 
+import Utils.Vigilance.Logger
 import Utils.Vigilance.Types
 
 -- maybe error return type
-notify :: Logger -> Notifier
-notify logger watches = loggerPutStr logger formattedWatches
+notify :: LogChan -> Notifier
+notify q watches = pushLogs q formattedWatches
   where formattedWatches = map format watches
         format w         = LB $ mconcat ["Watch "
                                         , w ^. watchName . to encodeUtf8
                                         , " failed to check in." ]
-
-openLogger :: FilePath -> IO Logger
-openLogger path = mkLogger flushEveryLine =<< openFile path AppendMode
-  where flushEveryLine = True

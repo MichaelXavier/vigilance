@@ -17,14 +17,14 @@ spec = do
         _      -> result == b
   describe "Monoid Config" $ do
     it "has reasonable defaults" $
-      mempty `shouldBe` Config Nothing Nothing "log/vigilance.log"
+      mempty `shouldBe` Config "state/AppState" Nothing "log/vigilance.log"
 
     prop "obeys the law" $
       property $ eq $ prop_Monoid (T :: T Config)
 
     prop "it chooses explicit acid path over nothing" $ \path ->
-      let config' = mempty <> mempty & configAcidPath .~ Just path :: Config
-      in config' ^. configAcidPath == Just path
+      let config' = mempty <> mempty & configAcidPath .~ path :: Config
+      in config' ^. configAcidPath == path
 
     prop "it chooses explicit email over nothing" $ \email ->
       let config' = mempty <> mempty & configFromEmail .~ Just email :: Config
