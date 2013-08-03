@@ -1,18 +1,28 @@
-{-# LANGUAGE QuasiQuotes           #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE QuasiQuotes               #-}
+{-# LANGUAGE TypeFamilies              #-}
+{-# LANGUAGE TemplateHaskell           #-}
+{-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE MultiParamTypeClasses     #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 module Utils.Vigilance.Web.Yesod ( runServer
                                  , WebApp(..) ) where
 
+import Control.Applicative ( (<$>)
+                           , (<*>)
+                           , pure )
 import Control.Lens
-import Control.Monad ((<=<))
+import Control.Monad ( (<=<)
+                     , join )
 import Data.Acid (AcidState)
+import qualified Data.Acid as A
+import Data.Time.Clock.POSIX (getPOSIXTime)
 import Network.Wai.Handler.Warp (run)
 import Yesod
 
+import Utils.Vigilance.TableOps
 import Utils.Vigilance.Types
+import Utils.Vigilance.Utils ( bindM2
+                             , bindM3 )
 
 data WebApp = WebApp { _acid :: AcidState AppState
                      , _logChan :: LogChan }
@@ -34,22 +44,29 @@ getWatchesR :: Handler Value
 getWatchesR = undefined
 
 postWatchesR :: Handler Value
-postWatchesR = undefined
+postWatchesR = returnJson =<< bindM2 createWatchS getDb parseJsonBody_
 
 getWatchR :: ID -> Handler Value
-getWatchR = undefined
+getWatchR =  returnJson <=< onWatch findWatchS
 
 deleteWatchR :: ID -> Handler Value
-deleteWatchR = undefined
+deleteWatchR = returnJson <=< onWatch deleteWatchS
 
 postPauseWatchR :: ID -> Handler Value
-postPauseWatchR = undefined
+postPauseWatchR = returnJson <=< onWatch pauseWatchS
 
 postUnPauseWatchR :: ID -> Handler Value
-postUnPauseWatchR = undefined
+postUnPauseWatchR = returnJson <=< bindM3 unPauseWatchS getDb getPOSIXTime' . return
 
 postCheckInWatchR :: ID -> Handler Value
-postCheckInWatchR = undefined
+postCheckInWatchR = returnJson <=< bindM3 checkInWatchS getDb getPOSIXTime' . return
 
 runServer :: WebApp -> IO ()
 runServer = run 3000 <=< toWaiApp
+
+getDb = view acid <$> getYesod --might be able to use `use`
+
+-- TODO: handle Nothing with 404 
+onWatch f i = join $ f <$> getDb <*> pure i
+
+getPOSIXTime' = liftIO getPOSIXTime

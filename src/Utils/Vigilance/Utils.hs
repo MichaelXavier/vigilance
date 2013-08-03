@@ -1,5 +1,10 @@
-module Utils.Vigilance.Utils (watchIntervalSeconds) where
+module Utils.Vigilance.Utils ( watchIntervalSeconds
+                             , bindM3
+                             , bindM2) where
 
+import Control.Monad ( join
+                     , liftM3
+                     , liftM2 )
 import Data.Time.Clock ( UTCTime
                        , addUTCTime)
 
@@ -15,3 +20,9 @@ watchIntervalSeconds (Every n Years)   = n * 60 * 60 * 24 * 365
 
 stepClock :: WatchInterval -> UTCTime -> UTCTime
 stepClock int = addUTCTime $ fromInteger $ watchIntervalSeconds int
+
+bindM2 :: Monad m => (a -> b -> m c) -> m a -> m b -> m c
+bindM2 f m1 m2  = join $ liftM2 f m1 m2
+
+bindM3 :: Monad m => (a -> b -> c -> m d) -> m a -> m b -> m c -> m d
+bindM3 f m1 m2 m3  = join $ liftM3 f m1 m2 m3
