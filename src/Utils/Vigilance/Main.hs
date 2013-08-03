@@ -6,6 +6,9 @@ module Main (main) where
 
 import ClassyPrelude hiding (FilePath)
 import Control.Applicative ((<$>))
+import Control.Concurrent (forkIO)
+import Control.Concurrent.Async ( waitAnyCatchCancel
+                                , async )
 import Control.Lens
 import Control.Monad ((<=<))
 import Control.Monad.Reader (runReaderT)
@@ -37,18 +40,41 @@ runWithConfigPath = runWithConfig <=< loadConfig
 runWithConfig :: Config -> IO ()
 runWithConfig cfg = do logChan   <- createLogChan
                        notifiers <- runReaderT (configNotifiers cfg) logChan
-                       acid      <- openLocalStateFrom (cfg ^. configAcidPath) (AppState mempty) 
+                       acidVar   <- newEmptyMVar
 
+
+                       --let log = pushLogs logChan . return . LB
+                       let log = putStrLn
                        let sweeperH       = errorLogger "Sweeper"  logChan
                        let notifierH      = errorLogger "Notifier" logChan
+
+                       log "Starting web server"
+
+                       server <- async $ runServer cfg acidVar
+
+                       log "Retrieving connection"
+                       acid <- takeMVar acidVar
+                       log "Got acid connection back from server."
+
                        let sweeperWorker  = SW.runWorker acid
                        let notifierWorker = NW.runWorker acid notifiers
 
-                       workForeverWithDelayed sweeperDelay sweeperH sweeperWorker --laziness is gonna fuck me here isn't it?
-                       workForeverWithDelayed notifierDelay notifierH notifierWorker
+                       log "Starting sweeper"
+
+                       sweeper <- async $ workForeverWithDelayed sweeperDelay sweeperH sweeperWorker --laziness is gonna fuck me here isn't it?
+
+                       log "Sweeper started"
+                       log "Starting notifier"
+
+                       notifier <- async $ workForeverWithDelayed notifierDelay notifierH notifierWorker
+
+                       log "Notifier started"
+
+                       log "waiting for someone to shit the bed"
+                       result <- snd <$> waitAnyCatchCancel [server, sweeper, notifier]
+                       print result --TODO: better exit handling
 
                        --TODO: give custom logger to server
-                       runServer cfg
 
 errorLogger :: LBS.ByteString -> LogChan -> SomeException -> IO ()
 errorLogger ctx logChan e =  pushLogs logChan [errMsg]

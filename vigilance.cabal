@@ -29,6 +29,7 @@ executable vigilance
                        classy-prelude >=0.5.8 && <1.0,
                        configurator >=0.2 && <1.0,
                        containers,
+                       either == 3.4.1,
                        errors >= 1.4.2 && <2.0,
                        fast-logger >= 0.3.2 && < 1.0,
                        interpolatedstring-perl6 >=0.9.0 && <1.0,

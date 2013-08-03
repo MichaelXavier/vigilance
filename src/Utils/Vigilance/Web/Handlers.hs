@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TemplateHaskell       #-}
-module Utils.Vigilance.Web.Handlers ( app
+module Utils.Vigilance.Web.Handlers ( appInit
                                     , runServer) where
 
 import Utils.Vigilance.TableOps
@@ -12,6 +12,7 @@ import Utils.Vigilance.Types
 import ClassyPrelude
 import Control.Lens
 import Control.Lens.TH
+import Control.Monad.Trans.Either (EitherT) --mehhh
 import Control.Monad.Error.Class (throwError)
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (readInt)
@@ -24,11 +25,12 @@ import Snap.Http.Server.Config (defaultConfig)
 import Snap.Extras.JSON ( reqJSON
                         , writeJSON)
 import Snap.Snaplet
-import Snap.Snaplet.AcidState ( Acid
-                              , acidInit'
-                              , HasAcid(..)
-                              , update
-                              , query)
+import Snap.Snaplet.AcidState -- ( Acid
+                               --- , getAcidState
+                               --- , acidInit'
+                               --- , HasAcid(..)
+                               --- , update
+                               --- , query)
 
 data App = App { _acid :: Snaplet (Acid AppState) }
 
@@ -45,16 +47,28 @@ routes = [ ("watches", method POST createWatchR)
          , ("watches/:id/unpause", method POST unPauseWatchR)
          , ("watches/:id/checkin", method POST checkInWatchR) ]
 
-app :: Config -> SnapletInit App App
-app cfg = makeSnaplet "vigilance" "Vigilence Web Server" Nothing $ do
-  a <- nestSnaplet "acid" acid openAcid
+appInit :: Config -> MVar (AcidState AppState) -> SnapletInit App App
+appInit cfg stVar = makeSnaplet "vigilance" "Vigilence Web Server" Nothing $ do
+  a  <- nestSnaplet "acid" acid openAcid
+  addPostInitHook stHook
+  --addPostInitHookBase stHook
+  --st <- getAcidState
+  --liftIO $ putMVar stVar st
   addRoutes routes
   return $ App a
   where openAcid = acidInit' acidPath (AppState mempty) -- TODO: in-memory
         acidPath = cfg ^. configAcidPath
+        --stHook :: Snaplet App -> EitherT Text IO (Snaplet App)
+        --stHook v = undefined
+        stHook v = do st <- lift $ getLens -- the fuck is going on here
+                      let st' = st :: AcidState AppState
+                      let wat = getAcidStore undefined
+                      let wat' = wat :: AcidState AppState
+                      liftIO $ putMVar stVar st
+                      return v
 
-runServer :: Config -> IO ()
-runServer = serveSnaplet defaultConfig . app
+runServer :: Config -> MVar (AcidState AppState) -> IO ()
+runServer cfg = serveSnaplet defaultConfig . appInit cfg
 
 createWatchR :: Handler App App ()
 createWatchR = writeJSON =<< update . CreateWatchEvent =<< reqJSON
