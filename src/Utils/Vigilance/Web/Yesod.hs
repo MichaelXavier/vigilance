@@ -61,6 +61,7 @@ postUnPauseWatchR = returnJson <=< bindM3 unPauseWatchS getDb getPOSIXTime' . re
 postCheckInWatchR :: ID -> Handler Value
 postCheckInWatchR = returnJson <=< bindM3 checkInWatchS getDb getPOSIXTime' . return
 
+--TODO: configurable port
 runServer :: WebApp -> IO ()
 runServer = run 3000 <=< toWaiApp
 
