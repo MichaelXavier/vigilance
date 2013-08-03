@@ -28,9 +28,12 @@ import Data.Text (Text)
 import Data.Typeable (Typeable)
 import qualified Data.Vector as V
 import System.Log.FastLogger (LogStr)
+import Yesod.Core.Dispatch (PathPiece)
 
 newtype ID = ID { _unID :: Int } deriving ( Show
                                           , Eq
+                                          , Read --testme, this is unlikely to go well. we don't want the quotes
+                                          , PathPiece
                                           , Ord
                                           , Num
                                           , SafeCopy

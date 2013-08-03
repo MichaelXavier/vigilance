@@ -37,16 +37,15 @@ executable vigilance
                        mime-mail >= 0.4.2 && <1.0,
                        mtl,
                        safecopy,
-                       snap,
-                       snap-core >=0.9.4.0 && < 1.0,
-                       snap-extras == 0.*,
-                       snaplet-acid-state,
-                       snap-server >=0.9.3.3 && < 1.0,
                        time,
                        tables,
                        text,
                        transformers,
-                       vector
+                       vector,
+                       warp,
+                       yesod,
+                       yesod-core,
+                       yesod-platform >= 1.2.3 && < 2.0
   -- hs-source-dirs:      
   default-language:    Haskell2010
   ghc-options: -threaded -O3

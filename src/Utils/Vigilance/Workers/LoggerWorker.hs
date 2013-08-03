@@ -1,7 +1,6 @@
 module Utils.Vigilance.Workers.LoggerWorker ( runWorker ) where
 
-import Control.Concurrent.Chan ( newChan
-                               , writeChan )
+import Control.Concurrent.Chan ( readChan )
 import Control.Monad ( forever
                      , (<=<) )
 import System.IO (openFile

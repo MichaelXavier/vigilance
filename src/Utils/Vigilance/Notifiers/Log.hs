@@ -6,7 +6,7 @@ module Utils.Vigilance.Notifiers.Log ( notify ) where
 import ClassyPrelude
 import Control.Lens
 import Data.Monoid (mconcat)
-import System.Log.FastLogger ( LogStr(LB) ) --todo: reexport from types
+import Data.Text (Text)
 
 import Utils.Vigilance.Logger
 import Utils.Vigilance.Types
@@ -15,6 +15,7 @@ import Utils.Vigilance.Types
 notify :: LogChan -> Notifier
 notify q watches = pushLogs q formattedWatches
   where formattedWatches = map format watches
-        format w         = LB $ mconcat ["Watch "
-                                        , w ^. watchName . to encodeUtf8
-                                        , " failed to check in." ]
+        format :: EWatch -> Text
+        format w = mconcat [ "Watch "
+                           , w ^. watchName
+                           , " failed to check in." ]
