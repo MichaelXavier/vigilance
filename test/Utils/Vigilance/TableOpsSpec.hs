@@ -23,6 +23,11 @@ spec = do
           wId         = w' ^. watchId
           table'      = watchLens (watchInterval .~ newInterval) wId table
       in (view watchInterval <$> findWatch wId table') == Just newInterval
+
+  describe "allWatches" $ do
+    prop "it returns the contents of the table only" $ \watches ->
+      let table  = fromList watches
+      in (map removeId $ allWatches table) == watches
   describe "pauseWatch" $ do
     prop "it sets the state and nothing else" $ \w ->
       let (w', table) = createWatch w emptyTable
@@ -59,7 +64,6 @@ spec = do
           wid         = w' ^. watchId
           table'      = checkInWatch time wid table
       in findWatch wid table' == Just (w' & watchWState .~ Active time)
-
   describe "getNotifying" $ do
     prop "returns empty list on a table without notifying watches" $ \watches ->
       let fixState Notifying = Paused

@@ -2,7 +2,11 @@
 {-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeFamilies       #-}
-module Utils.Vigilance.TableOps ( createWatch
+module Utils.Vigilance.TableOps ( allWatches
+                                , allWatchesEvent
+                                , AllWatchesEvent(..)
+                                , allWatchesS
+                                , createWatch
                                 , createWatchEvent
                                 , CreateWatchEvent(..)
                                 , createWatchS
@@ -59,6 +63,9 @@ import qualified Data.Table as T
 import Data.Time.Clock.POSIX (POSIXTime)
 import Utils.Vigilance.Sweeper (sweepWatch)
 import Utils.Vigilance.Types
+
+allWatches :: WatchTable -> [EWatch]
+allWatches table = table ^.. rows'
 
 createWatch :: NewWatch -> WatchTable -> (EWatch, WatchTable)
 createWatch w = insert' $ w & watchId .~ (ID 0)
@@ -119,7 +126,9 @@ fromList :: [NewWatch] -> WatchTable
 fromList = foldl' (\table w -> snd $ createWatch w table) emptyTable
 
 -- ACID State
--- this compiles and is mega slick but needs testing
+allWatchesEvent :: Query AppState [EWatch]
+allWatchesEvent = view (wTable . to allWatches)
+
 createWatchEvent :: NewWatch -> Update AppState EWatch
 createWatchEvent w = wTable %%= (createWatch w)
 
@@ -148,7 +157,8 @@ getNotifyingEvent = view (wTable . to getNotifying)
 completeNotifyingEvent :: [ID] -> Update AppState ()
 completeNotifyingEvent is = wTable %= (completeNotifying is)
 
-$(makeAcidic ''AppState [ 'createWatchEvent
+$(makeAcidic ''AppState [ 'allWatchesEvent
+                        , 'createWatchEvent
                         , 'deleteWatchEvent
                         , 'findWatchEvent
                         , 'checkInWatchEvent
@@ -157,6 +167,11 @@ $(makeAcidic ''AppState [ 'createWatchEvent
                         , 'sweepTableEvent
                         , 'getNotifyingEvent
                         , 'completeNotifyingEvent])
+
+allWatchesS :: (QueryEvent AllWatchesEvent, MonadIO m)
+               => AcidState (EventState AllWatchesEvent)
+               -> m [EWatch]
+allWatchesS acid = query' acid AllWatchesEvent
 
 createWatchS :: (UpdateEvent CreateWatchEvent, MonadIO m)
                 => AcidState (EventState CreateWatchEvent)

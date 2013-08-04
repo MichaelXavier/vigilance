@@ -41,7 +41,7 @@ mkYesod "WebApp" [parseRoutes|
 |]
 
 getWatchesR :: Handler Value
-getWatchesR = undefined
+getWatchesR = returnJson =<< allWatchesS =<< getDb
 
 postWatchesR :: Handler Value
 postWatchesR = returnJson =<< bindM2 createWatchS getDb parseJsonBody_
