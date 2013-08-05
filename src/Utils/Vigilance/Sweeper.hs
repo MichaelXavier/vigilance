@@ -8,19 +8,19 @@ import Data.Time.Clock.POSIX (POSIXTime)
 import Utils.Vigilance.Types
 
 
-expired :: POSIXTime -> EWatch -> Bool
+expired :: POSIXTime -> Watch i -> Bool
 expired now w@Watch { _watchWState = Active last } = beyondCutoff
   where cutoff       = last + interval
         beyondCutoff = now > cutoff
         interval     = fromInteger $ secondsInterval (w ^. watchInterval)
 expired _ _                                        = False
 
-expireWatch :: EWatch -> EWatch
+expireWatch :: Watch i -> Watch i
 expireWatch w = w & watchWState %~ bumpState
   where bumpState Triggered = Triggered
         bumpState _         = Notifying
 
-sweepWatch :: POSIXTime -> EWatch -> EWatch
+sweepWatch :: POSIXTime -> Watch i -> Watch i
 sweepWatch t w
   | expired t w = expireWatch w
   | otherwise   = w

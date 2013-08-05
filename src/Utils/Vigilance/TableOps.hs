@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE NoImplicitPrelude  #-}
 {-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeFamilies       #-}
@@ -46,6 +47,7 @@ module Utils.Vigilance.TableOps ( allWatches
                                 , fromList
                                 , emptyTable) where
 
+import ClassyPrelude
 import Control.Lens
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Reader (ask)
@@ -54,34 +56,59 @@ import Control.Monad.State ( get
 import Data.Acid
 import Data.Acid.Advanced (update', query')
 import Data.List (foldl')
-import Data.Table ( insert'
-                  , with
-                  , rows'
-                  , empty
-                  , deleteWith)
-import qualified Data.Table as T
+import Data.Store.Lens (with)
+import           Data.Store ((.==), (:.)(..))
+import qualified Data.Store as S
+import qualified Data.Store.Storable as SS
 import Data.Time.Clock.POSIX (POSIXTime)
 import Utils.Vigilance.Sweeper (sweepWatch)
 import Utils.Vigilance.Types
 
+-- Selections
+sWatchId :: (WatchStoreTag, S.N0)
+sWatchId = (WatchStoreTag, S.n0)
+
+sWatchName :: (WatchStoreTag, S.N1)
+sWatchName = (WatchStoreTag, S.n1)
+
+sWatchInterval :: (WatchStoreTag, S.N2)
+sWatchInterval = (WatchStoreTag, S.n2)
+
+sWatchWState :: (WatchStoreTag, S.N3)
+sWatchWState = (WatchStoreTag, S.n3)
+
+sWatchNotifications :: (WatchStoreTag, S.N4)
+sWatchNotifications = (WatchStoreTag, S.n4)
+
 allWatches :: WatchTable -> [EWatch]
-allWatches table = table ^.. rows'
+allWatches = map ewatch . S.toList
+
+-- Helpers
+
+getId (wid :. _) = wid
+
+ewatch (k, w) = w & watchId .~ getId k -- stateful?
+
+newwatch w = w & watchId .~ ()
+
+-- API
 
 createWatch :: NewWatch -> WatchTable -> (EWatch, WatchTable)
-createWatch w = insert' $ w & watchId .~ (ID 0)
+createWatch w s = (w & watchId .~ getId k, s')
+  where (k, s') = SS.insert' w s
 
 deleteWatch :: ID -> WatchTable -> WatchTable
-deleteWatch i table = table & deleteWith WatchID (==) i
+deleteWatch i = S.delete (sWatchId .== i)
 
 findWatch :: ID -> WatchTable -> Maybe EWatch
-findWatch i table = table ^. at i
+findWatch i = listToMaybe . map ewatch . S.lookup (sWatchId .== i)
 
 watchLens :: (Indexable ID p0, Profunctor p0)
              => p0 EWatch EWatch
              -> ID
              -> WatchTable
              -> WatchTable
-watchLens f i table = table & ix i %~ f
+watchLens f i table = table & with (sWatchId .== i) %~ f
 
 checkInWatch :: POSIXTime -> ID -> WatchTable -> WatchTable
 checkInWatch time = watchLens doCheckIn
@@ -100,11 +127,11 @@ unPauseWatch t = watchLens unPause
         updateState _                = Active t
 
 sweepTable :: POSIXTime -> WatchTable -> WatchTable
-sweepTable time table = table & rows' %~ sweep
+sweepTable time = S.map sweep
   where sweep = sweepWatch time
 
 getNotifying :: WatchTable -> [EWatch]
-getNotifying table = table ^.. with WatchWState (==) Notifying . rows'
+getNotifying = map ewatch . S.lookup (sWatchWState .== Notifying)
 
 --TODO: also scope by state
 -- hack, see https://github.com/ekmett/tables/issues/6
@@ -120,7 +147,7 @@ completeNotifying ids table = foldl' updateOne table ids
         updateOne = flip $ watchLens updateState
 
 emptyTable :: WatchTable
-emptyTable = empty
+emptyTable = S.empty
 
 fromList :: [NewWatch] -> WatchTable
 fromList = foldl' (\table w -> snd $ createWatch w table) emptyTable

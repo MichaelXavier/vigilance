@@ -7,6 +7,7 @@
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeOperators              #-}
 module Utils.Vigilance.Types where
 
 import Control.Applicative ( (<$>)
@@ -22,7 +23,9 @@ import Data.Monoid
 import Data.SafeCopy ( base
                      , SafeCopy
                      , deriveSafeCopy)
-import Data.Table
+import           Data.Store (M, O, (.:.), (:.), (.<), (.<=), (.>), (.>=), (./=), (.==), (.&&), (.||), Store)
+import qualified Data.Store as S
+import           Data.Store.Storable (Storable(..))
 import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Text (Text)
 import Data.Typeable (Typeable)
@@ -32,6 +35,7 @@ import Yesod.Core.Dispatch (PathPiece)
 
 newtype ID = ID { _unID :: Int } deriving ( Show
                                           , Eq
+                                          , Enum
                                           , Read --testme, this is unlikely to go well. we don't want the quotes
                                           , PathPiece
                                           , Ord
@@ -43,7 +47,11 @@ newtype ID = ID { _unID :: Int } deriving ( Show
 
 makeClassy ''ID
 
-data WatchInterval = Every Integer TimeUnit deriving (Show, Eq, Typeable)
+instance Bounded ID where
+  minBound = ID 1
+  maxBound = ID maxBound
+
+data WatchInterval = Every Integer TimeUnit deriving (Show, Eq, Typeable, Ord)
 
 instance ToJSON WatchInterval where
   toJSON (Every n u) = Array $ V.fromList [toJSON n, toJSON u]
@@ -58,7 +66,7 @@ data TimeUnit = Seconds |
                 Hours   |
                 Days    |
                 Weeks   |
-                Years deriving (Show, Eq)
+                Years deriving (Show, Eq, Ord)
 
 instance ToJSON TimeUnit where
   toJSON Seconds = String "seconds"
@@ -88,7 +96,7 @@ newtype EmailAddress = EmailAddress { _unEmailAddress :: Text } deriving ( Show
 
 makeClassy ''EmailAddress
 
-data NotificationPreference = EmailNotification EmailAddress deriving (Show, Eq)
+data NotificationPreference = EmailNotification EmailAddress deriving (Show, Eq, Ord)
 
 instance ToJSON NotificationPreference where
   toJSON (EmailNotification a) = object [ "type"    .= String "email"
@@ -182,28 +190,22 @@ instance FromJSON NewWatch where
                                     <*> obj .: "state"
                                     <*> obj .: "notifications"
 
-type WatchTable = Table EWatch
+data WatchStoreTag = WatchStoreTag
 
-instance Tabular EWatch where
-  type PKT EWatch = ID
-  data Key k EWatch b where
-    WatchID     :: Key Primary   EWatch ID
-    WatchWState :: Key Supplemental EWatch WatchState
-  data Tab EWatch i = WatchTable (i Primary ID) (i Supplemental WatchState)
+-- tagspec
+instance Storable NewWatch where
+  type StoreTS   NewWatch = ID :. Text :. WatchInterval :. WatchState :. NotificationPreference
+  type StoreKRS  NewWatch = O  :. O    :. O             :. O          :. M
+  type StoreIRS  NewWatch = O  :. O    :. M             :. M          :. M
 
-  fetch WatchID     = _watchId
-  fetch WatchWState = _watchWState
+  key (Watch _ wn wi ws wns) = 
+    S.dimA    S..:
+    S.dimO wn S..:
+    S.dimO wi S..:
+    S.dimO ws S..:.
+    S.dimM wns
 
-  primary             = WatchID
-  primarily WatchID r = r
-
-  mkTab f = WatchTable <$> f WatchID <*> f WatchWState
-
-  forTab (WatchTable x y) f          = WatchTable <$> f WatchID x <*> f WatchWState y
-  ixTab (WatchTable x _) WatchID     = x
-  ixTab (WatchTable _ x) WatchWState = x
-
-  autoTab = autoIncrement watchId
+type WatchTable = Store WatchStoreTag (StoreKRS NewWatch) (StoreIRS NewWatch) (StoreTS NewWatch) NewWatch
 
 type Notifier = [EWatch] -> IO ()
 

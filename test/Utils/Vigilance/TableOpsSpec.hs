@@ -3,7 +3,6 @@ module Utils.Vigilance.TableOpsSpec (spec) where
 
 import Control.Monad.State
 import Data.Acid.Memory.Pure
-import qualified Data.Table as T
 import Utils.Vigilance.TableOps
 import SpecHelper
 
