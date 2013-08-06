@@ -13,6 +13,7 @@ module SpecHelper ( module Utils.Vigilance.Types
                   , bumpTime
                   , NonEmptyList(..)
                   , Text
+                  , UniqueList(..)
                   , module Network.Mail.Mime
                   , module Control.Lens
                   , module Data.Monoid
@@ -29,6 +30,7 @@ import Control.Lens hiding (elements)
 import Data.DeriveTH
 import Data.Derive.Arbitrary (makeArbitrary)
 import Data.Monoid
+import qualified Data.Set as S
 import Data.Text ( Text
                  , pack)
 import Data.Time.Clock.POSIX (POSIXTime)
@@ -85,3 +87,10 @@ genText = pack <$> genString
 genString :: Gen String
 genString = (listOf $ choose charRange)
   where charRange = ('\32', '\128')
+
+newtype UniqueList a = Unique [a]
+ deriving ( Eq, Ord, Show, Read )
+
+instance (Ord a, Arbitrary a) => Arbitrary (UniqueList a) where
+  arbitrary = Unique . nub' <$> arbitrary
+    where nub' = S.toList . S.fromList

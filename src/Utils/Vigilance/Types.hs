@@ -150,7 +150,7 @@ data Watch i = Watch { _watchId            :: i
                      , _watchName          :: Text
                      , _watchInterval      :: WatchInterval
                      , _watchWState        :: WatchState
-                     , _watchNotifications :: [NotificationPreference] } deriving (Show, Eq, Typeable)
+                     , _watchNotifications :: [NotificationPreference] } deriving (Show, Eq, Typeable, Ord)
 
 makeLenses ''Watch
 

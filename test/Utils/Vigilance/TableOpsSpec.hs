@@ -16,7 +16,7 @@ spec = do
     prop "it deletes data that is known" $ \w ->
       let (w', table) = createWatch w emptyTable
           table'      = deleteWatch (w' ^. watchId) table
-      in  size table == 0
+      in  size table' == 0
     prop "data is findable after insert" $ \w ->
       let (w', table) = createWatch w emptyTable
       in findWatch (w' ^. watchId) table == Just w'
@@ -73,14 +73,16 @@ spec = do
           table              = fromList $ map (\w -> w & watchWState %~ fixState) watches
       in getNotifying table == []
 
-    prop "returns only the notifying events" $ \watches n ->
+    prop "returns only the notifying events" $ \(Unique watches) n ->
       let fixState Notifying = Paused
           fixState x         = x
           notNotifying       = map (\w -> w & watchWState %~ fixState) watches
-          notifying          = replicate (min n 100) $ baseNewWatch & watchWState .~ Notifying
+          --notifying          = replicate (min n 100) $ baseNewWatch & watchWState .~ Notifying
+          notifying          = replicate (min n 2) $ baseNewWatch & watchWState .~ Notifying
           table              = fromList $ shuffleIn notNotifying notifying
           result             = getNotifying table
-      in (map removeId result) == notifying
+      in traceShow ("GETNOTIFYING ==", result, map removeId result, notifying) $ (map removeId result) == notifying
+      --NEED UNIQUE NAME
 
   -- dog slow
   describe "completeNotifying" $ do
