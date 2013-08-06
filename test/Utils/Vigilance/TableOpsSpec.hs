@@ -3,6 +3,8 @@ module Utils.Vigilance.TableOpsSpec (spec) where
 
 import Control.Monad.State
 import Data.Acid.Memory.Pure
+import Data.Store (toList,  (.==), size, elements)
+import Data.Store.Lens (with)
 import Utils.Vigilance.TableOps
 import SpecHelper
 
@@ -13,7 +15,8 @@ spec = do
   describe "table properties" $ do
     prop "it deletes data that is known" $ \w ->
       let (w', table) = createWatch w emptyTable
-      in deleteWatch (w' ^. watchId) table == emptyTable
+          table'      = deleteWatch (w' ^. watchId) table
+      in  size table == 0
     prop "data is findable after insert" $ \w ->
       let (w', table) = createWatch w emptyTable
       in findWatch (w' ^. watchId) table == Just w'
@@ -82,26 +85,28 @@ spec = do
   -- dog slow
   describe "completeNotifying" $ do
     prop "it does nothing when given bogus ids" $ \watches ids ->
-      let table    = fromList $ take 10 watches
+      let table    = fromList $ take 10 watches :: WatchTable
           bogusIds = map (negate . abs) ids
-      in completeNotifying bogusIds table == table
+          table'   = completeNotifying bogusIds table :: WatchTable
+      in table' `equalsTable` table
 
     prop "it does nothing when no ids" $ \watches ->
-      let table    = fromList $ take 10 watches
-      in completeNotifying [] table == table
+      let table  = fromList $ take 10 watches
+          table' = completeNotifying [] table
+      in table' `equalsTable` table
 
     prop "it only triggers watches that are in the id list AND notifying" $ \watches ->
       let notifying    = filter (\w -> w ^. watchWState == Notifying) watches
           table        = fromList watches
-          allIds       = table ^.. T.rows' . watchId
+          allIds       = tableIds table
           table'       = completeNotifying allIds table
-          nowTriggered = table' ^.. T.with WatchWState (==) Triggered . T.rows'
-      in (map removeId nowTriggered) == notifying
+          nowTriggered = table' ^. with (sWatchWState .== Triggered) . to elements -- WHYYY
+      in nowTriggered == notifying
 
     prop "notifying leaves no remaining watches notifying when all specified" $ \watches ->
       let notifying    = filter (\w -> w ^. watchWState == Notifying) watches
           table        = fromList watches
-          allIds       = table ^.. T.rows' . watchId
+          allIds       = tableIds table
           table'       = completeNotifying allIds table
       in getNotifying table' == []
 
@@ -124,14 +129,14 @@ spec = do
   describe "sweepTable" $ do
     prop "does not reduce or increase the size of the table" $ \watches t ->
       let table = fromList watches
-      in T.count (sweepTable t table) == length watches
+      in size (sweepTable t table) == length watches
 
     prop "does nothing to an empty table" $ \t ->
-      (sweepTable t emptyTable) == emptyTable
+      (sweepTable t emptyTable) `equalsTable` emptyTable
 
     it "does nothing when the items don't need to be sweeped" $
       let table = fromList [baseNewWatch]
-      in (sweepTable 123 table) == table
+      in (sweepTable 123 table) `equalsTable` table
 
     it "sweeps expired watches" $
       let w           = baseNewWatch & watchWState .~ (Active 123)
@@ -152,3 +157,7 @@ shuffleIn xs []         = xs
 
 removeId :: EWatch -> NewWatch
 removeId w = w & watchId .~ ()
+
+tableIds = map (getId . fst) . toList
+
+t1 `equalsTable` t2 = elements t1 == elements t2

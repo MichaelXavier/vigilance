@@ -45,9 +45,15 @@ module Utils.Vigilance.TableOps ( allWatches
                                 , CompleteNotifyingEvent(..)
                                 , completeNotifyingS
                                 , fromList
+                                , getId
+                                , sWatchId
+                                , sWatchName
+                                , sWatchInterval
+                                , sWatchWState
+                                , sWatchNotifications
                                 , emptyTable) where
 
-import ClassyPrelude
+import ClassyPrelude hiding (fromList)
 import Control.Lens
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Reader (ask)
@@ -103,12 +109,12 @@ deleteWatch i = S.delete (sWatchId .== i)
 findWatch :: ID -> WatchTable -> Maybe EWatch
 findWatch i = listToMaybe . map ewatch . S.lookup (sWatchId .== i)
 
-watchLens :: (Indexable ID p0, Profunctor p0)
-             => p0 EWatch EWatch
-             -> ID
-             -> WatchTable
-             -> WatchTable
-watchLens f i table = table & with (sWatchId .== i) %~ f
+--watchLens :: (Indexable ID p0, Profunctor p0)
+--             => p0 NewWatch NewWatch
+--             -> ID
+--             -> WatchTable
+--             -> WatchTable
+watchLens f i table = table & with (sWatchId .== i) %~ (over mapped f)
 
 checkInWatch :: POSIXTime -> ID -> WatchTable -> WatchTable
 checkInWatch time = watchLens doCheckIn
@@ -141,8 +147,7 @@ completeNotifying ids table = foldl' updateOne table ids
 --completeNotifying ids table = table & with WatchWState (==) Notifying . T.withAny WatchID ids . T.rows' %~ updateState
 --completeNotifying ids table = table & with WatchWState (==) Notifying . T.withAny (toListOf folded . T.fetch WatchID) ids . rows' %~ updateState
 --completeNotifying ids table = table & T.withAny (toListOf folded . T.fetch WatchID) ids . rows' %~ updateState
-  where updateState :: EWatch -> EWatch
-        updateState w = w & watchWState .~ Triggered
+  where updateState w = w & watchWState .~ Triggered
         updateOne :: WatchTable -> ID -> WatchTable
         updateOne = flip $ watchLens updateState
 

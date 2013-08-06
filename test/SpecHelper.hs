@@ -25,7 +25,7 @@ module SpecHelper ( module Utils.Vigilance.Types
 import Control.Applicative ( (<$>)
                            , (<*>)
                            , pure)
-import Control.Lens
+import Control.Lens hiding (elements)
 import Data.DeriveTH
 import Data.Derive.Arbitrary (makeArbitrary)
 import Data.Monoid
