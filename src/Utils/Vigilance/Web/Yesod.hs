@@ -24,7 +24,8 @@ import Utils.Vigilance.Types
 import Utils.Vigilance.Utils ( bindM2
                              , bindM3 )
 
-data WebApp = WebApp { _acid :: AcidState AppState
+data WebApp = WebApp { _acid    :: AcidState AppState
+                     , _cfg     :: Config
                      , _logChan :: LogChan }
 
 makeClassy ''WebApp
@@ -63,7 +64,8 @@ postCheckInWatchR = returnJson <=< bindM3 checkInWatchS getDb getPOSIXTime' . re
 
 --TODO: configurable port
 runServer :: WebApp -> IO ()
-runServer = run 3000 <=< toWaiApp
+runServer w = run port =<< toWaiApp w
+  where port = w ^. cfg . configPort
 
 getDb = view acid <$> getYesod --might be able to use `use`
 

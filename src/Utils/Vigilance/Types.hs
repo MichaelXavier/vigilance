@@ -216,16 +216,18 @@ makeLenses ''AppState
 --TODO: http port
 data Config = Config { _configAcidPath  :: FilePath
                      , _configFromEmail :: Maybe EmailAddress
+                     , _configPort      :: Int
                      , _configLogPath   :: FilePath } deriving (Show, Eq)
 
 makeClassy ''Config
 
 -- this is unsound
 instance Monoid Config where
-  mempty = Config defaultAcidPath Nothing defaultLogPath
-  Config pa ea la `mappend` Config pb eb lb = Config (nonDefault defaultAcidPath pa pb)
-                                                     (chooseJust ea eb)
-                                                     (nonDefault defaultLogPath la lb)
+  mempty = Config defaultAcidPath Nothing defaultPort defaultLogPath
+  Config apa ea pa la `mappend` Config apb eb pb lb = Config (nonDefault defaultAcidPath apa apb)
+                                                             (chooseJust ea eb)
+                                                             (nonDefault defaultPort pa pb)
+                                                             (nonDefault defaultLogPath la lb)
     where chooseJust a@(Just _) b = a
           chooseJust _ b          = b
           nonDefault defValue a b
@@ -238,6 +240,9 @@ defaultLogPath = "log/vigilance.log"
 
 defaultAcidPath :: FilePath
 defaultAcidPath = "state/AppState"
+
+defaultPort :: Int
+defaultPort = 3000
 
 -- should i use chan, tmchan?
 type LogChan = Chan [LogStr]

@@ -30,6 +30,7 @@ loadConfig = convertConfig <=< C.load . return . CT.Required
 convertConfig :: CT.Config -> IO Config
 convertConfig cfg = mempty <> Config <$> lud defaultAcidPath "acid_path"
                                      <*> (toEmailAddress <$> lu "from_email")
+                                     <*> (lud defaultPort "port")
                                      <*> lud defaultLogPath "log_path"
   where lu             = C.lookup cfg
         lud d          = C.lookupDefault d cfg

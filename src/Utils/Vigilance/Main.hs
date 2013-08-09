@@ -50,7 +50,7 @@ runWithConfig cfg = do logChan   <- createLogChan
                        let sweeperWorker  = SW.runWorker acid
                        let notifierWorker = NW.runWorker acid notifiers
                        let loggerWorker   = LW.runWorker (cfg ^. configLogPath) logChan
-                       let webApp         = WebApp acid logChan
+                       let webApp         = WebApp acid cfg logChan
 
                        log "Starting logger" -- TIME PARADOX
 
