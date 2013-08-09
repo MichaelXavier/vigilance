@@ -229,9 +229,9 @@ instance Monoid Config where
     where chooseJust a@(Just _) b = a
           chooseJust _ b          = b
           nonDefault defValue a b
-            | a == defaultLogPath = b
-            | b == defaultLogPath = a
-            | otherwise           = b
+            | a == defValue = b
+            | b == defValue = a
+            | otherwise     = b
 
 defaultLogPath :: FilePath
 defaultLogPath = "log/vigilance.log"
