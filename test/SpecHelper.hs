@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -13,7 +14,7 @@ module SpecHelper ( module Utils.Vigilance.Types
                   , bumpTime
                   , NonEmptyList(..)
                   , Text
-                  , UniqueList(..)
+                  , UniqueWatches(..)
                   , module Network.Mail.Mime
                   , module Control.Lens
                   , module Data.Monoid
@@ -29,6 +30,7 @@ import Control.Applicative ( (<$>)
 import Control.Lens hiding (elements)
 import Data.DeriveTH
 import Data.Derive.Arbitrary (makeArbitrary)
+import Data.List (nubBy)
 import Data.Monoid
 import qualified Data.Set as S
 import Data.Text ( Text
@@ -88,9 +90,9 @@ genString :: Gen String
 genString = (listOf $ choose charRange)
   where charRange = ('\32', '\128')
 
-newtype UniqueList a = Unique [a]
- deriving ( Eq, Ord, Show, Read )
+newtype UniqueWatches = UniqueWatches [NewWatch]
+ deriving ( Eq, Ord, Show)
 
-instance (Ord a, Arbitrary a) => Arbitrary (UniqueList a) where
-  arbitrary = Unique . nub' <$> arbitrary
-    where nub' = S.toList . S.fromList
+instance Arbitrary UniqueWatches where
+  arbitrary = UniqueWatches . nubBy same <$> arbitrary
+    where a `same` b = a ^. watchId == b ^. watchId && a ^. watchName == b ^. watchName

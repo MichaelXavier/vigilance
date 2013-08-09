@@ -1,8 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 module Utils.Vigilance.TableOpsSpec (spec) where
 
+import ClassyPrelude hiding (toList, fromList)
 import Control.Monad.State
 import Data.Acid.Memory.Pure
+import qualified Data.Store as S
 import Data.Store (toList,  (.==), size, elements)
 import Data.Store.Lens (with)
 import Utils.Vigilance.TableOps
@@ -27,7 +31,7 @@ spec = do
       in (view watchInterval <$> findWatch wId table') == Just newInterval
 
   describe "allWatches" $ do
-    prop "it returns the contents of the table only" $ \watches ->
+    prop "it returns the contents of the table only" $ \(UniqueWatches watches) ->
       let table  = fromList watches
       in (map removeId $ allWatches table) == watches
   describe "pauseWatch" $ do
@@ -73,16 +77,16 @@ spec = do
           table              = fromList $ map (\w -> w & watchWState %~ fixState) watches
       in getNotifying table == []
 
-    prop "returns only the notifying events" $ \(Unique watches) n ->
+    prop "returns only the notifying events" $ \(UniqueWatches watches) ->
       let fixState Notifying = Paused
           fixState x         = x
           notNotifying       = map (\w -> w & watchWState %~ fixState) watches
-          --notifying          = replicate (min n 100) $ baseNewWatch & watchWState .~ Notifying
-          notifying          = replicate (min n 2) $ baseNewWatch & watchWState .~ Notifying
+          aNotifying         = baseNewWatch & watchWState .~ Notifying
+          notifying          :: [NewWatch]
+          notifying          = [aNotifying & watchName .~ "foo", aNotifying & watchName .~ "bar"]
           table              = fromList $ shuffleIn notNotifying notifying
           result             = getNotifying table
-      in traceShow ("GETNOTIFYING ==", result, map removeId result, notifying) $ (map removeId result) == notifying
-      --NEED UNIQUE NAME
+      in (map removeId result) == notifying
 
   -- dog slow
   describe "completeNotifying" $ do
@@ -97,15 +101,17 @@ spec = do
           table' = completeNotifying [] table
       in table' `equalsTable` table
 
-    prop "it only triggers watches that are in the id list AND notifying" $ \watches ->
-      let notifying    = filter (\w -> w ^. watchWState == Notifying) watches
+    prop "it only triggers watches that are in the id list AND notifying" $ \(UniqueWatches watches) ->
+      let notifying        = filter (\w -> w ^. watchWState == Notifying) watches
+          alreadyTriggered = filter (\w -> w ^. watchWState == Triggered) watches
           table        = fromList watches
           allIds       = tableIds table
           table'       = completeNotifying allIds table
-          nowTriggered = table' ^. with (sWatchWState .== Triggered) . to elements -- WHYYY
-      in nowTriggered == notifying
+          triggerNames = sort $ map (view watchName) $ table' ^. with (sWatchWState .== Triggered) . to elements --christ
+          expectedTriggerNames = sort $ map (view watchName) $ notifying ++ alreadyTriggered
+      in triggerNames == expectedTriggerNames
 
-    prop "notifying leaves no remaining watches notifying when all specified" $ \watches ->
+    prop "notifying leaves no remaining watches notifying when all specified" $ \(UniqueWatches watches) ->
       let notifying    = filter (\w -> w ^. watchWState == Notifying) watches
           table        = fromList watches
           allIds       = tableIds table
@@ -127,9 +133,8 @@ spec = do
           result      = query acid'' $ find w'
       in  result == Nothing
 
-
   describe "sweepTable" $ do
-    prop "does not reduce or increase the size of the table" $ \watches t ->
+    prop "does not reduce or increase the size of the table" $ \(UniqueWatches watches) t ->
       let table = fromList watches
       in size (sweepTable t table) == length watches
 
@@ -162,4 +167,6 @@ removeId w = w & watchId .~ ()
 
 tableIds = map (getId . fst) . toList
 
-t1 `equalsTable` t2 = elements t1 == elements t2
+-- sort not necessary?
+t1 `equalsTable` t2 = sortedElements t1 == sortedElements t2
+  where sortedElements = sort . elements

@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Utils.Vigilance.SweeperSpec (spec) where
 
 import SpecHelper
@@ -8,7 +9,7 @@ import Utils.Vigilance.Sweeper
 spec :: Spec
 spec = do
   describe "expired" $ do
-    prop "inactive ewatch always false" $ \w t ->
+    prop "inactive ewatch always false" $ \(w :: EWatch) t ->
       let ws = case w ^. watchWState of
                  Active _ -> Notifying
                  x        -> x

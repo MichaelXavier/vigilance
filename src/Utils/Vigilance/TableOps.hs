@@ -63,9 +63,10 @@ import Data.Acid
 import Data.Acid.Advanced (update', query')
 import Data.List (foldl')
 import Data.Store.Lens (with)
-import           Data.Store ((.==), (:.)(..))
+import           Data.Store ((.==), (:.)(..), (.&&))
 import qualified Data.Store as S
 import qualified Data.Store.Storable as SS
+import qualified Data.Store.Selection as SEL
 import Data.Time.Clock.POSIX (POSIXTime)
 import Utils.Vigilance.Sweeper (sweepWatch)
 import Utils.Vigilance.Types
@@ -143,13 +144,12 @@ getNotifying = map ewatch . S.lookup (sWatchWState .== Notifying)
 -- hack, see https://github.com/ekmett/tables/issues/6
 -- so not performant
 completeNotifying :: [ID] -> WatchTable -> WatchTable
-completeNotifying ids table = foldl' updateOne table ids
---completeNotifying ids table = table & with WatchWState (==) Notifying . T.withAny WatchID ids . T.rows' %~ updateState
---completeNotifying ids table = table & with WatchWState (==) Notifying . T.withAny (toListOf folded . T.fetch WatchID) ids . rows' %~ updateState
---completeNotifying ids table = table & T.withAny (toListOf folded . T.fetch WatchID) ids . rows' %~ updateState
+completeNotifying [] table  = table
+completeNotifying ids table = SS.update' (Just . updateState) scope table
   where updateState w = w & watchWState .~ Triggered
-        updateOne :: WatchTable -> ID -> WatchTable
-        updateOne = flip $ watchLens updateState
+        scope = idScope .&& isNotifyingScope
+        idScope = SEL.any $ map (\i -> sWatchId .== i) ids
+        isNotifyingScope = sWatchWState .== Notifying
 
 emptyTable :: WatchTable
 emptyTable = S.empty
