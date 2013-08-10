@@ -217,17 +217,19 @@ makeLenses ''AppState
 data Config = Config { _configAcidPath  :: FilePath
                      , _configFromEmail :: Maybe EmailAddress
                      , _configPort      :: Int
-                     , _configLogPath   :: FilePath } deriving (Show, Eq)
+                     , _configLogPath   :: FilePath
+                     , _configWatches   :: [NewWatch] } deriving (Show, Eq)
 
 makeClassy ''Config
 
 -- this is unsound
 instance Monoid Config where
-  mempty = Config defaultAcidPath Nothing defaultPort defaultLogPath
-  Config apa ea pa la `mappend` Config apb eb pb lb = Config (nonDefault defaultAcidPath apa apb)
-                                                             (chooseJust ea eb)
-                                                             (nonDefault defaultPort pa pb)
-                                                             (nonDefault defaultLogPath la lb)
+  mempty = Config defaultAcidPath Nothing defaultPort defaultLogPath mempty
+  Config apa ea pa la wa `mappend` Config apb eb pb lb wb = Config (nonDefault defaultAcidPath apa apb)
+                                                                   (chooseJust ea eb)
+                                                                   (nonDefault defaultPort pa pb)
+                                                                   (nonDefault defaultLogPath la lb)
+                                                                   (mappend wa wb)
     where chooseJust a@(Just _) b = a
           chooseJust _ b          = b
           nonDefault defValue a b
