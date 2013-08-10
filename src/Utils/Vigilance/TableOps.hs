@@ -151,6 +151,11 @@ completeNotifying ids table = SS.update' (Just . updateState) scope table
         idScope = SEL.any $ map (\i -> sWatchId .== i) ids
         isNotifyingScope = sWatchWState .== Notifying
 
+mergeStaticWatches :: [NewWatch] -> WatchTable -> WatchTable
+mergeStaticWatches watches table = foldl' mergeWatchIn table watches
+  where mergeWatchIn table' staticW = SS.update' (Just . mergeWatch) (sWatchName .== w ^. watchName) table'
+          where mergeWatch eWatch = undefined
+
 emptyTable :: WatchTable
 emptyTable = S.empty
 
