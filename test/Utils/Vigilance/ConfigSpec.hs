@@ -22,6 +22,9 @@ spec = do
     it "parses NewWatches if they are specified" $ do
       "config_with_watches.conf" `shouldParseConfig` configWithWatches
 
+    it "parses NewWatches imported from other files" $ do
+      "config_with_watch_imports.conf" `shouldParseConfig` configWithWatches
+
 p `shouldParseConfig` cfg = loadConfig path `shouldReturn` cfg
   where path = unpack ("test" </> "fixtures" </> p)
 
