@@ -28,10 +28,10 @@ loadConfig = convertConfig <=< C.load . return . CT.Required
 
 -- basically no point to this mappend at present
 convertConfig :: CT.Config -> IO Config
-convertConfig cfg = mempty <> Config <$> lud defaultAcidPath "acid_path"
-                                     <*> (toEmailAddress <$> lu "from_email")
-                                     <*> (lud defaultPort "port")
-                                     <*> lud defaultLogPath "log_path"
+convertConfig cfg = mempty <> Config <$> lud defaultAcidPath "vigilance.acid_path"
+                                     <*> (toEmailAddress <$> lu "vigilance.from_email")
+                                     <*> (lud defaultPort "vigilance.port")
+                                     <*> lud defaultLogPath "vigilance.log_path"
   where lu             = C.lookup cfg
         lud d          = C.lookupDefault d cfg
         toEmailAddress = fmap (EmailAddress . pack)
