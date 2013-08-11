@@ -1,4 +1,4 @@
 log/
-example.cfg
+example.conf
 state/
 client_session_key.aes

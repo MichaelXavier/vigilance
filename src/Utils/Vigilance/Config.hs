@@ -2,6 +2,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Utils.Vigilance.Config ( configNotifiers
                               , convertConfig
+                              , reloadConfig
+                              , loadRawConfig
                               , loadConfig) where
 
 import ClassyPrelude hiding (FilePath)
@@ -26,8 +28,11 @@ configNotifiers cfg = do logNotifier        <- L.notify <$> ask
                          let mEmailNotifier = E.notify . E.EmailContext <$> cfg ^. configFromEmail
                          return $ catMaybes [Just logNotifier, mEmailNotifier]
 
+loadRawConfig :: FilePath -> IO CT.Config
+loadRawConfig = C.load . return . CT.Required
+
 loadConfig :: FilePath -> IO Config
-loadConfig = convertConfig <=< C.load . return . CT.Required
+loadConfig = convertConfig <=< loadRawConfig
 
 -- basically no point to this mappend at present
 convertConfig :: CT.Config -> IO Config
@@ -39,6 +44,9 @@ convertConfig cfg = mempty <> Config <$> lud defaultAcidPath "vigilance.acid_pat
   where lu             = C.lookup cfg
         lud d          = C.lookupDefault d cfg
         toEmailAddress = fmap (EmailAddress . pack)
+
+reloadConfig :: CT.Config -> IO ()
+reloadConfig = C.reload
 
 -- probably want to make this an either to fail on parse failures
 parseWatches :: HashMap CT.Name CT.Value -> [NewWatch]

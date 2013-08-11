@@ -7,3 +7,11 @@ of the watches by name.
 the only potentially weird part is that if you create a watch via the API and
 then never add it to the config, it may be surprising when you find out its
 still around. oh well.
+
+* documentation of config stuff
+* automatic reload of config of static watches
+* log context with log message
+* no session
+
+ISSUES
+* workers do not seem to be reloading

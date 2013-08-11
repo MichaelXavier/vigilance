@@ -1,4 +1,8 @@
 module Utils.Vigilance.Utils ( watchIntervalSeconds
+                             , WakeSig
+                             , newWakeSig
+                             , wakeUp
+                             , waitForWake
                              , bindM3
                              , bindM2) where
 
@@ -7,6 +11,12 @@ import Control.Monad ( join
                      , liftM2 )
 import Data.Time.Clock ( UTCTime
                        , addUTCTime)
+
+import Control.Monad.STM (atomically)
+import Control.Concurrent.STM.TMVar ( TMVar
+                                    , newEmptyTMVarIO
+                                    , takeTMVar
+                                    , putTMVar)
 
 import Utils.Vigilance.Types
 
@@ -26,3 +36,14 @@ bindM2 f m1 m2  = join $ liftM2 f m1 m2
 
 bindM3 :: Monad m => (a -> b -> c -> m d) -> m a -> m b -> m c -> m d
 bindM3 f m1 m2 m3  = join $ liftM3 f m1 m2 m3
+
+type WakeSig = TMVar ()
+
+newWakeSig :: IO WakeSig
+newWakeSig = newEmptyTMVarIO
+
+waitForWake :: WakeSig -> IO ()
+waitForWake = atomically . takeTMVar
+
+wakeUp :: WakeSig -> IO ()
+wakeUp = atomically . (flip putTMVar) ()
