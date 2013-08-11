@@ -118,6 +118,19 @@ spec = do
           table'       = completeNotifying allIds table
       in getNotifying table' == []
 
+  describe "mergeStaticWatches" $ do
+    prop "no watches to merge does not modify anything" $ \watches ->
+      let table = fromList watches
+      in mergeStaticWatches [] table `equalsTable` table
+
+    prop "it only updates watchInterval and watchNotifications" $ \(UniqueWatches watches) targetWatch wInterval' wState' notifications' ->
+      let table = fromList (targetWatch:watches)
+          targetWatch' = targetWatch { _watchInterval = wInterval', _watchWState = wState', _watchNotifications = notifications' } 
+          table' = mergeStaticWatches [targetWatch'] table
+          expectedResult   = targetWatch { _watchInterval = wInterval', _watchNotifications = notifications' }
+          resultingWatches = table' ^. with (sWatchName .== (targetWatch' ^. watchName)) . to elements
+      in resultingWatches == [expectedResult]
+
   --TODO: just use the createWatchS and the like here instead?
   describe "acid events" $ do
     let acid = openAcidState $ AppState mempty

@@ -44,6 +44,10 @@ module Utils.Vigilance.TableOps ( allWatches
                                 , completeNotifyingEvent
                                 , CompleteNotifyingEvent(..)
                                 , completeNotifyingS
+                                , mergeStaticWatches
+                                , mergeStaticWatchesEvent
+                                , MergeStaticWatchesEvent(..)
+                                , mergeStaticWatchesS
                                 , fromList
                                 , getId
                                 , sWatchId
@@ -153,8 +157,11 @@ completeNotifying ids table = SS.update' (Just . updateState) scope table
 
 mergeStaticWatches :: [NewWatch] -> WatchTable -> WatchTable
 mergeStaticWatches watches table = foldl' mergeWatchIn table watches
-  where mergeWatchIn table' staticW = SS.update' (Just . mergeWatch) (sWatchName .== w ^. watchName) table'
-          where mergeWatch eWatch = undefined
+  where mergeWatchIn table' staticW = SS.update' (Just . mergeWatch)
+                                                 (sWatchName .== staticW ^. watchName)
+                                                 table'
+          where mergeWatch eWatch = eWatch & watchInterval      .~ (staticW ^. watchInterval)
+                                           & watchNotifications .~ (staticW ^. watchNotifications)
 
 emptyTable :: WatchTable
 emptyTable = S.empty
@@ -194,6 +201,9 @@ getNotifyingEvent = view (wTable . to getNotifying)
 completeNotifyingEvent :: [ID] -> Update AppState ()
 completeNotifyingEvent is = wTable %= (completeNotifying is)
 
+mergeStaticWatchesEvent :: [NewWatch] -> Update AppState ()
+mergeStaticWatchesEvent watches = wTable %= (mergeStaticWatches watches)
+
 $(makeAcidic ''AppState [ 'allWatchesEvent
                         , 'createWatchEvent
                         , 'deleteWatchEvent
@@ -203,7 +213,8 @@ $(makeAcidic ''AppState [ 'allWatchesEvent
                         , 'unPauseWatchEvent
                         , 'sweepTableEvent
                         , 'getNotifyingEvent
-                        , 'completeNotifyingEvent])
+                        , 'completeNotifyingEvent
+                        , 'mergeStaticWatchesEvent ])
 
 allWatchesS :: (QueryEvent AllWatchesEvent, MonadIO m)
                => AcidState (EventState AllWatchesEvent)
@@ -260,7 +271,13 @@ getNotifyingS :: (QueryEvent GetNotifyingEvent, MonadIO m)
 getNotifyingS acid = query' acid $ GetNotifyingEvent
 
 completeNotifyingS :: (UpdateEvent CompleteNotifyingEvent, MonadIO m)
-                => AcidState (EventState CompleteNotifyingEvent)
-                -> [ID]
-                -> m ()
+                   => AcidState (EventState CompleteNotifyingEvent)
+                   -> [ID]
+                   -> m ()
 completeNotifyingS acid = update' acid . CompleteNotifyingEvent
+
+mergeStaticWatchesS :: (UpdateEvent CompleteNotifyingEvent, MonadIO m)
+                    => AcidState (EventState MergeStaticWatchesEvent)
+                    -> [NewWatch]
+                    -> m ()
+mergeStaticWatchesS acid = update' acid . MergeStaticWatchesEvent
