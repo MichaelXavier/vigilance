@@ -41,6 +41,8 @@ import Utils.Vigilance.Logger ( createLogChan
 import Utils.Vigilance.TableOps (fromList)
 import Utils.Vigilance.Types
 import Utils.Vigilance.Utils ( newWakeSig
+                             , WakeSig
+                             , waitForWake
                              , wakeUp )
 import Utils.Vigilance.Worker ( workForeverWithDelayed
                               , workForeverWith )
@@ -63,7 +65,8 @@ runWithConfig rCfg = do cfg       <- convertConfig rCfg
                         logChan   <- createLogChan
                         notifiers <- runReaderT (configNotifiers cfg) logChan
                         acid      <- openLocalStateFrom (cfg ^. configAcidPath) (AppState $ initialState cfg)
-                        wakeSig   <- newWakeSig
+                        wakeSig   <- newWakeSig :: IO (WakeSig ())
+                        quitSig   <- newWakeSig :: IO (WakeSig ExitCode)
 
                         let log = pushLog logChan :: LBS.ByteString -> IO ()
                         let sweeperH       = errorLogger "Sweeper"  logChan
@@ -103,16 +106,18 @@ runWithConfig rCfg = do cfg       <- convertConfig rCfg
                                       , static ]
 
                         log "configuring signal handlers"
-                        installHandler sigHUP  (Catch $ wakeUp wakeSig) Nothing
+                        installHandler sigHUP  (Catch $ wakeUp wakeSig ()) Nothing
                         --FIXME: instead of cleanup here, use a tmvar that funnels into 1 blocking call
-                        installHandler sigINT  (Catch $ cleanUp acid logChan workers ExitSuccess) Nothing
-                        installHandler sigTERM (Catch $ cleanUp acid logChan workers ExitSuccess) Nothing
+                        installHandler sigINT  (Catch $ wakeUp quitSig ExitSuccess) Nothing
+                        installHandler sigTERM (Catch $ wakeUp quitSig ExitSuccess) Nothing
 
                         log "waiting for any process to fail"
-                        result <- snd <$> waitAnyCatchCancel (logger:workers)
-                        print result --TODO: better exit handling
+                        forkIO $ waitAnyCatchCancel (logger:workers) >> wakeUp quitSig (ExitFailure 1)
 
-                        cleanUp acid logChan workers (ExitFailure 1) -- might be bad since a worker at this point is by definition dead
+                        log "waiting for quit signal"
+                        code <- waitForWake quitSig
+
+                        cleanUp acid logChan workers code
   where initialState :: Config -> WatchTable
         initialState cfg = fromList $ cfg ^. configWatches
 

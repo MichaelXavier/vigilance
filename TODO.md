@@ -10,3 +10,7 @@ still around. oh well.
 
 * documentation of config stuff
 * log context with log message
+
+Issues
+* race condition with exit causes process to exit before logs flush. maybe a
+  closable queue?

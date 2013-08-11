@@ -15,7 +15,7 @@ import Utils.Vigilance.Types
 import Utils.Vigilance.Utils ( WakeSig
                              , waitForWake )
 
-runWorker :: AcidState AppState -> LogChan -> CT.Config -> WakeSig -> IO ()
+runWorker :: AcidState AppState -> LogChan -> CT.Config -> WakeSig () -> IO ()
 runWorker acid logChan cfg wakeSig = forever $ do -- why? :(
   pushLog' "Waiting on HUP signal for config reload"
   waitForWake wakeSig

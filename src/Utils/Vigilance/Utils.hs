@@ -37,13 +37,13 @@ bindM2 f m1 m2  = join $ liftM2 f m1 m2
 bindM3 :: Monad m => (a -> b -> c -> m d) -> m a -> m b -> m c -> m d
 bindM3 f m1 m2 m3  = join $ liftM3 f m1 m2 m3
 
-type WakeSig = TMVar ()
+type WakeSig a = TMVar a
 
-newWakeSig :: IO WakeSig
+newWakeSig :: IO (WakeSig a)
 newWakeSig = newEmptyTMVarIO
 
-waitForWake :: WakeSig -> IO ()
+waitForWake :: WakeSig a -> IO a
 waitForWake = atomically . takeTMVar
 
-wakeUp :: WakeSig -> IO ()
-wakeUp = atomically . (flip putTMVar) ()
+wakeUp :: WakeSig a -> a -> IO ()
+wakeUp sig = atomically . putTMVar sig
