@@ -9,18 +9,26 @@ import ClassyPrelude hiding ( FilePath
 import Control.Applicative ((<$>))
 import Control.Concurrent (forkIO)
 import Control.Concurrent.Async ( waitAnyCatchCancel
+                                , cancel
+                                , Async
                                 , async )
 import Control.Lens
 import Control.Monad ((<=<))
 import Control.Monad.Reader (runReaderT)
 import qualified Data.ByteString.Lazy as LBS
-import Data.Acid ( openLocalStateFrom
+import Data.Acid ( AcidState
+                 , openLocalStateFrom
+                 , createCheckpoint
                  , closeAcidState )
 import qualified Data.Configurator.Types as CT
 import GHC.IO (FilePath)
-import System.Exit (exitFailure)
+import System.Exit ( exitFailure
+                   , ExitCode(..)
+                   , exitWith )
 import System.Posix.Signals ( installHandler
                             , sigHUP
+                            , sigINT
+                            , sigTERM
                             , Handler(Catch) )
 import Text.InterpolatedString.Perl6 (qc)
 
@@ -28,6 +36,7 @@ import Utils.Vigilance.Config ( loadRawConfig
                               , convertConfig
                               , configNotifiers )
 import Utils.Vigilance.Logger ( createLogChan
+                              , pushLogs
                               , pushLog )
 import Utils.Vigilance.TableOps (fromList)
 import Utils.Vigilance.Types
@@ -86,20 +95,24 @@ runWithConfig rCfg = do cfg       <- convertConfig rCfg
                         --TODO: give custom logger to server
                         server <- async $ runServer webApp
 
-                        log "configuring signal handlers"
-                        installHandler sigHUP (Catch $ wakeUp wakeSig) Nothing
                         static <- async $ workForeverWithDelayed notifierDelay staticH watchWorker
 
+                        let workers = [ server
+                                      , sweeper
+                                      , notifier
+                                      , static ]
+
+                        log "configuring signal handlers"
+                        installHandler sigHUP  (Catch $ wakeUp wakeSig) Nothing
+                        --FIXME: instead of cleanup here, use a tmvar that funnels into 1 blocking call
+                        installHandler sigINT  (Catch $ cleanUp acid logChan workers ExitSuccess) Nothing
+                        installHandler sigTERM (Catch $ cleanUp acid logChan workers ExitSuccess) Nothing
+
                         log "waiting for any process to fail"
-                        result <- snd <$> waitAnyCatchCancel [ logger
-                                                             , server
-                                                             , sweeper
-                                                             , notifier
-                                                             , static ]
+                        result <- snd <$> waitAnyCatchCancel (logger:workers)
                         print result --TODO: better exit handling
 
-                        log "closing acid state"
-                        closeAcidState acid
+                        cleanUp acid logChan workers (ExitFailure 1) -- might be bad since a worker at this point is by definition dead
   where initialState :: Config -> WatchTable
         initialState cfg = fromList $ cfg ^. configWatches
 
@@ -115,3 +128,17 @@ notifierDelay = 300 -- arbitrary
 
 noConfig :: IO ()
 noConfig = putStrLn "config file argument missing" >> exitFailure
+
+cleanUp :: AcidState AppState -> LogChan -> [Async ()] -> ExitCode -> IO ()
+cleanUp acid logChan workers code = do logs ["cleaning up", "killing workers"]
+                                       mapM_ cancel workers
+                                       log "creating checkpoint"
+                                       createCheckpoint acid
+                                       log "closing acid"
+                                       closeAcidState acid
+                                       exitWith code
+  where log :: Text -> IO ()
+        log  = pushLog logChan
+        logs :: [Text] -> IO ()
+        logs = pushLogs logChan
+                
