@@ -33,7 +33,8 @@ import Utils.Vigilance.TableOps (fromList)
 import Utils.Vigilance.Types
 import Utils.Vigilance.Utils ( newWakeSig
                              , wakeUp )
-import Utils.Vigilance.Worker (workForeverWithDelayed)
+import Utils.Vigilance.Worker ( workForeverWithDelayed
+                              , workForeverWith )
 import Utils.Vigilance.Web.Yesod (runServer, WebApp(..))
 import qualified Utils.Vigilance.Workers.LoggerWorker as LW
 import qualified Utils.Vigilance.Workers.NotificationWorker as NW
@@ -77,7 +78,7 @@ runWithConfig rCfg = do cfg       <- convertConfig rCfg
                         log "Sweeper started"
                         log "Starting notifier"
 
-                        notifier <- async $ workForeverWithDelayed notifierDelay notifierH notifierWorker
+                        notifier <- async $ workForeverWith notifierH notifierWorker
 
                         log "Notifier started"
 

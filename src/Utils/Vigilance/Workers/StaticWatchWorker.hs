@@ -4,6 +4,7 @@ module Utils.Vigilance.Workers.StaticWatchWorker (runWorker) where
 import Data.Acid (AcidState)
 import qualified Data.Configurator.Types as CT
 import Control.Applicative ((<$>))
+import Control.Monad (forever) -- why :(
 import Control.Lens
 import Data.Text (Text)
 import Utils.Vigilance.Config ( reloadConfig
@@ -15,7 +16,7 @@ import Utils.Vigilance.Utils ( WakeSig
                              , waitForWake )
 
 runWorker :: AcidState AppState -> LogChan -> CT.Config -> WakeSig -> IO ()
-runWorker acid logChan cfg wakeSig = do
+runWorker acid logChan cfg wakeSig = forever $ do -- why? :(
   pushLog' "Waiting on HUP signal for config reload"
   waitForWake wakeSig
   pushLog' "Caught HUP signal. Reloading config"
