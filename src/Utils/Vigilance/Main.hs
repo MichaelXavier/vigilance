@@ -13,8 +13,10 @@ import Control.Concurrent.Async ( waitAnyCatchCancel
                                 , Async
                                 , async )
 import Control.Lens
-import Control.Monad ((<=<))
+import Control.Monad ( (<=<)
+                     , void )
 import Control.Monad.Reader ( runReaderT
+                            , withReaderT
                             , asks)
 import Control.Monad.Trans (lift)
 import qualified Data.ByteString.Lazy as LBS
@@ -67,7 +69,7 @@ runWithConfigPath path = bindM2 runInMainLogCtx (loadRawConfig path) createLogCh
 runInMainLogCtx rCfg logChan = runInLogCtx ctx $ runWithConfig rCfg
   where ctx = LogCtx "Main" logChan
 
-runWithConfig :: CT.Config -> IO ()
+runWithConfig :: CT.Config -> LogCtxT IO ()
 runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         logChan   <- asks ctxChan --TODO: rewrite others
                         let notifiers = configNotifiers cfg
@@ -121,7 +123,7 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         pushLog "waiting for any process to fail"
 
                         lift $ do
-                          forkIO $ waitAnyCatchCancel (logger:workers)
+                          forkIO $ void $ waitAnyCatchCancel (logger:workers)
                           wakeUp quitSig (ExitFailure 1)
 
                         pushLog "waiting for quit signal"
@@ -131,9 +133,9 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
   where initialState :: Config -> WatchTable
         initialState cfg = fromList $ cfg ^. configWatches
 
-errorLogger :: Text -> SomeException -> LogChan IO ()
+errorLogger :: Text -> SomeException -> LogCtxT IO ()
 errorLogger name e =  withReaderT newLogName $ pushLog errMsg
-  where errMsg = [qc|Error: {e}|] :: LBS.ByteString
+  where errMsg = [qc|Error: {e}|] :: Text
         newLogName ctx = ctx { ctxName = name }
 
 sweeperDelay :: Int
