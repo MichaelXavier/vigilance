@@ -17,6 +17,7 @@ import Control.Monad ( (<=<)
                      , void )
 import Control.Monad.Reader ( runReaderT
                             , withReaderT
+                            , ask
                             , asks)
 import Control.Monad.Trans (lift)
 import qualified Data.ByteString.Lazy as LBS
@@ -71,20 +72,21 @@ runInMainLogCtx rCfg logChan = runInLogCtx ctx $ runWithConfig rCfg
 
 runWithConfig :: CT.Config -> LogCtxT IO ()
 runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
+                        logCtx    <- ask
                         logChan   <- asks ctxChan --TODO: rewrite others
                         let notifiers = configNotifiers cfg
                         acid      <- lift $ openLocalStateFrom (cfg ^. configAcidPath) (AppState $ initialState cfg)
-                        wakeSig   <- lift $ newWakeSig :: IO (WakeSig ())
-                        quitSig   <- lift $ newWakeSig :: IO (WakeSig ExitCode)
+                        wakeSig   <- lift $ (newWakeSig :: IO (WakeSig ()))
+                        quitSig   <- lift $ (newWakeSig :: IO (WakeSig ExitCode))
 
-                        let sweeperH       = errorLogger "Sweeper"
-                        let notifierH      = errorLogger "Notifier"
-                        let loggerH        = errorLogger "Logger"
-                        let staticH        = errorLogger "Config Reload"
+                        let sweeperH       = errorLogger "Sweeper" logCtx
+                        let notifierH      = errorLogger "Notifier" logCtx
+                        let loggerH        = errorLogger "Logger" logCtx
+                        let staticH        = errorLogger "Config Reload" logCtx
                         let sweeperWorker  = SW.runWorker acid
-                        let notifierWorker = NW.runWorker acid notifiers
+                        let notifierWorker = runInLogCtx logCtx $ NW.runWorker acid notifiers
                         let loggerWorker   = LW.runWorker (cfg ^. configLogPath) logChan
-                        let watchWorker    = WW.runWorker acid logChan rCfg wakeSig
+                        let watchWorker    = runInLogCtx logCtx $ WW.runWorker acid rCfg wakeSig
                         let webApp         = WebApp acid cfg logChan
 
                         pushLog "Starting logger" -- TIME PARADOX
@@ -123,20 +125,21 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         pushLog "waiting for any process to fail"
 
                         lift $ do
-                          forkIO $ void $ waitAnyCatchCancel (logger:workers)
+                          forkIO $ print . snd =<< waitAnyCatchCancel (logger:workers)
                           wakeUp quitSig (ExitFailure 1)
 
                         pushLog "waiting for quit signal"
                         code <- lift $ waitForWake quitSig
+                        lift $ print code
 
                         cleanUp acid workers code
   where initialState :: Config -> WatchTable
         initialState cfg = fromList $ cfg ^. configWatches
 
-errorLogger :: Text -> SomeException -> LogCtxT IO ()
-errorLogger name e =  withReaderT newLogName $ pushLog errMsg
+errorLogger :: Text -> LogCtx -> SomeException -> IO ()
+errorLogger name ctx e =  runInLogCtx ctx' $ pushLog errMsg
   where errMsg = [qc|Error: {e}|] :: Text
-        newLogName ctx = ctx { ctxName = name }
+        ctx'   = ctx { ctxName = name }
 
 sweeperDelay :: Int
 sweeperDelay = 5 -- arbitrary
