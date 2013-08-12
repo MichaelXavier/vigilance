@@ -10,6 +10,8 @@ module Utils.Vigilance.Notifiers.Email ( notify
 
 import ClassyPrelude
 import Control.Lens
+import Control.Monad.Reader (withReaderT)
+import Control.Monad.Trans (lift)
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Map.Lazy as M
 import Text.InterpolatedString.Perl6 (qc)
@@ -20,6 +22,7 @@ import Network.Mail.Mime ( Address(..)
                          , Encoding( QuotedPrintableText )
                          , Mail(..))
 
+import Utils.Vigilance.Logger (pushLog)
 import Utils.Vigilance.Types
 
 data EmailContext = EmailContext { _fromEmail :: EmailAddress } deriving (Show, Eq)
@@ -27,8 +30,14 @@ data EmailContext = EmailContext { _fromEmail :: EmailAddress } deriving (Show, 
 makeClassy ''EmailContext
 
 notify :: EmailContext -> Notifier
-notify ctx watches = mapM_ renderSendMail mails
+notify ctx watches = withReaderT newLogName $ mapM_ renderSendMail' mails
   where mails = generateEmails watches ctx
+        newLogName ctx = ctx { ctxName = "Email Notifier" }
+
+renderSendMail' :: Mail -> LogCtxT IO ()
+renderSendMail' mail = do pushLog $ "Sending email notification to " <> emails
+                          lift $ renderSendMail mail
+  where emails = mconcat . map addressEmail . mailTo $ mail
 
 generateEmails :: [EWatch] -> EmailContext -> [Mail]
 generateEmails watches ctx = M.elems $ M.mapWithKey createMail groupedByEmail -- ehhhhh

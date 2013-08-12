@@ -14,7 +14,9 @@ import Control.Concurrent.Async ( waitAnyCatchCancel
                                 , async )
 import Control.Lens
 import Control.Monad ((<=<))
-import Control.Monad.Reader (runReaderT)
+import Control.Monad.Reader ( runReaderT
+                            , asks)
+import Control.Monad.Trans (lift)
 import qualified Data.ByteString.Lazy as LBS
 import Data.Acid ( AcidState
                  , openLocalStateFrom
@@ -36,11 +38,13 @@ import Utils.Vigilance.Config ( loadRawConfig
                               , convertConfig
                               , configNotifiers )
 import Utils.Vigilance.Logger ( createLogChan
+                              , runInLogCtx
                               , pushLogs
                               , pushLog )
 import Utils.Vigilance.TableOps (fromList)
 import Utils.Vigilance.Types
-import Utils.Vigilance.Utils ( newWakeSig
+import Utils.Vigilance.Utils ( bindM2
+                             , newWakeSig
                              , WakeSig
                              , waitForWake
                              , wakeUp )
@@ -58,72 +62,79 @@ main = do configPath <- (fmap unpack . listToMaybe) <$> getArgs
           maybe noConfig runWithConfigPath configPath
 
 runWithConfigPath :: FilePath -> IO ()
-runWithConfigPath = runWithConfig <=< loadRawConfig
+runWithConfigPath path = bindM2 runInMainLogCtx (loadRawConfig path) createLogChan
+
+runInMainLogCtx rCfg logChan = runInLogCtx ctx $ runWithConfig rCfg
+  where ctx = LogCtx "Main" logChan
 
 runWithConfig :: CT.Config -> IO ()
-runWithConfig rCfg = do cfg       <- convertConfig rCfg
-                        logChan   <- createLogChan
-                        notifiers <- runReaderT (configNotifiers cfg) logChan
-                        acid      <- openLocalStateFrom (cfg ^. configAcidPath) (AppState $ initialState cfg)
-                        wakeSig   <- newWakeSig :: IO (WakeSig ())
-                        quitSig   <- newWakeSig :: IO (WakeSig ExitCode)
+runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
+                        logChan   <- asks ctxChan --TODO: rewrite others
+                        let notifiers = configNotifiers cfg
+                        acid      <- lift $ openLocalStateFrom (cfg ^. configAcidPath) (AppState $ initialState cfg)
+                        wakeSig   <- lift $ newWakeSig :: IO (WakeSig ())
+                        quitSig   <- lift $ newWakeSig :: IO (WakeSig ExitCode)
 
-                        let log = pushLog logChan :: LBS.ByteString -> IO ()
-                        let sweeperH       = errorLogger "Sweeper"  logChan
-                        let notifierH      = errorLogger "Notifier" logChan
-                        let loggerH        = errorLogger "Logger" logChan
-                        let staticH        = errorLogger "Config Reload" logChan
+                        let sweeperH       = errorLogger "Sweeper"
+                        let notifierH      = errorLogger "Notifier"
+                        let loggerH        = errorLogger "Logger"
+                        let staticH        = errorLogger "Config Reload"
                         let sweeperWorker  = SW.runWorker acid
                         let notifierWorker = NW.runWorker acid notifiers
                         let loggerWorker   = LW.runWorker (cfg ^. configLogPath) logChan
                         let watchWorker    = WW.runWorker acid logChan rCfg wakeSig
                         let webApp         = WebApp acid cfg logChan
 
-                        log "Starting logger" -- TIME PARADOX
+                        pushLog "Starting logger" -- TIME PARADOX
 
-                        logger <- async $ workForeverWithDelayed sweeperDelay loggerH loggerWorker
+                        logger <- lift $ async $ workForeverWithDelayed sweeperDelay loggerH loggerWorker
 
-                        log "Starting sweeper"
+                        pushLog "Starting sweeper"
 
-                        sweeper <- async $ workForeverWithDelayed sweeperDelay sweeperH sweeperWorker
+                        sweeper <- lift $ async $ workForeverWithDelayed sweeperDelay sweeperH sweeperWorker
 
-                        log "Sweeper started"
-                        log "Starting notifier"
+                        pushLog "Sweeper started"
+                        pushLog "Starting notifier"
 
-                        notifier <- async $ workForeverWith notifierH notifierWorker
+                        notifier <- lift $ async $ workForeverWith notifierH notifierWorker
 
-                        log "Notifier started"
+                        pushLog "Notifier started"
 
-                        log "Starting web server"
+                        pushLog "Starting web server"
                         --TODO: give custom logger to server
-                        server <- async $ runServer webApp
+                        server <- lift $ async $ runServer webApp
 
-                        static <- async $ workForeverWithDelayed notifierDelay staticH watchWorker
+                        static <- lift $ async $ workForeverWithDelayed notifierDelay staticH watchWorker
 
                         let workers = [ server
                                       , sweeper
                                       , notifier
                                       , static ]
 
-                        log "configuring signal handlers"
-                        installHandler sigHUP  (Catch $ wakeUp wakeSig ()) Nothing
-                        --FIXME: instead of cleanup here, use a tmvar that funnels into 1 blocking call
-                        installHandler sigINT  (Catch $ wakeUp quitSig ExitSuccess) Nothing
-                        installHandler sigTERM (Catch $ wakeUp quitSig ExitSuccess) Nothing
+                        pushLog "configuring signal handlers"
 
-                        log "waiting for any process to fail"
-                        forkIO $ waitAnyCatchCancel (logger:workers) >> wakeUp quitSig (ExitFailure 1)
+                        lift $ do
+                          installHandler sigHUP  (Catch $ wakeUp wakeSig ()) Nothing
+                          installHandler sigINT  (Catch $ wakeUp quitSig ExitSuccess) Nothing
+                          installHandler sigTERM (Catch $ wakeUp quitSig ExitSuccess) Nothing
 
-                        log "waiting for quit signal"
-                        code <- waitForWake quitSig
+                        pushLog "waiting for any process to fail"
 
-                        cleanUp acid logChan workers code
+                        lift $ do
+                          forkIO $ waitAnyCatchCancel (logger:workers)
+                          wakeUp quitSig (ExitFailure 1)
+
+                        pushLog "waiting for quit signal"
+                        code <- lift $ waitForWake quitSig
+
+                        cleanUp acid workers code
   where initialState :: Config -> WatchTable
         initialState cfg = fromList $ cfg ^. configWatches
 
-errorLogger :: LBS.ByteString -> LogChan -> SomeException -> IO ()
-errorLogger ctx logChan e =  pushLog logChan errMsg
-  where errMsg = [qc|Error in {ctx}: {e}|] :: LBS.ByteString
+errorLogger :: Text -> SomeException -> LogChan IO ()
+errorLogger name e =  withReaderT newLogName $ pushLog errMsg
+  where errMsg = [qc|Error: {e}|] :: LBS.ByteString
+        newLogName ctx = ctx { ctxName = name }
 
 sweeperDelay :: Int
 sweeperDelay = 5 -- arbitrary
@@ -134,16 +145,10 @@ notifierDelay = 300 -- arbitrary
 noConfig :: IO ()
 noConfig = putStrLn "config file argument missing" >> exitFailure
 
-cleanUp :: AcidState AppState -> LogChan -> [Async ()] -> ExitCode -> IO ()
-cleanUp acid logChan workers code = do logs ["cleaning up", "killing workers"]
-                                       mapM_ cancel workers
-                                       log "creating checkpoint"
-                                       createCheckpoint acid
-                                       log "closing acid"
-                                       closeAcidState acid
-                                       exitWith code
-  where log :: Text -> IO ()
-        log  = pushLog logChan
-        logs :: [Text] -> IO ()
-        logs = pushLogs logChan
-                
+cleanUp :: AcidState AppState -> [Async ()] -> ExitCode -> LogCtxT IO ()
+cleanUp acid workers code = do pushLogs ["cleaning up", "killing workers"]
+                               lift $ mapM_ cancel workers
+                               pushLog "creating checkpoint"
+                               lift $ createCheckpoint acid
+                               pushLog "closing acid"
+                               lift $ closeAcidState acid >> exitWith code

@@ -23,10 +23,10 @@ import qualified Utils.Vigilance.Notifiers.Email as E
 import qualified Utils.Vigilance.Notifiers.Log   as L
 import Utils.Vigilance.Types
 
-configNotifiers :: Config -> LogCtx IO [Notifier]
-configNotifiers cfg = do logNotifier        <- L.notify <$> ask
-                         let mEmailNotifier = E.notify . E.EmailContext <$> cfg ^. configFromEmail
-                         return $ catMaybes [Just logNotifier, mEmailNotifier]
+configNotifiers :: Config -> [Notifier]
+configNotifiers cfg = catMaybes [logNotifier, emailNotifier]
+  where logNotifier   = Just L.notify
+        emailNotifier = E.notify . E.EmailContext <$> cfg ^. configFromEmail
 
 loadRawConfig :: FilePath -> IO CT.Config
 loadRawConfig = C.load . return . CT.Required

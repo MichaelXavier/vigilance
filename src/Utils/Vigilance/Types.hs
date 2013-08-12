@@ -207,8 +207,6 @@ instance Storable NewWatch where
 
 type WatchTable = Store WatchStoreTag (StoreKRS NewWatch) (StoreIRS NewWatch) (StoreTS NewWatch) NewWatch
 
-type Notifier = [EWatch] -> IO ()
-
 newtype AppState = AppState { _wTable :: WatchTable } deriving (Typeable)
 
 makeLenses ''AppState
@@ -248,7 +246,12 @@ defaultPort = 3000
 
 -- should i use chan, tmchan?
 type LogChan = Chan [LogStr]
-type LogCtx m a = ReaderT LogChan m a
+
+-- maybe need a local ctx that can name the context and then nest a chan?
+data LogCtx = LogCtx { ctxName :: Text, ctxChan :: LogChan }
+type LogCtxT m a = ReaderT LogCtx m a
+
+type Notifier = [EWatch] -> LogCtxT IO ()
 
 deriveSafeCopy 0 'base ''WatchState
 deriveSafeCopy 0 'base ''TimeUnit
