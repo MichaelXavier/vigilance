@@ -100,7 +100,7 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         pushLog "Sweeper started"
                         pushLog "Starting notifier"
 
-                        notifier <- lift $ async $ workForeverWith notifierH notifierWorker
+                        notifier <- lift $ async $ workForeverWithDelayed notifierDelay notifierH notifierWorker
 
                         pushLog "Notifier started"
 
@@ -108,7 +108,7 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         --TODO: give custom logger to server
                         server <- lift $ async $ runServer webApp
 
-                        static <- lift $ async $ workForeverWithDelayed notifierDelay staticH watchWorker
+                        static <- lift $ async $ workForeverWith staticH watchWorker
 
                         let workers = [ server
                                       , sweeper

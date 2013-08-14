@@ -14,4 +14,3 @@ still around. oh well.
 Issues
 * race condition with exit causes process to exit before logs flush. maybe a
   closable queue?
-* seems to write to the disk like crazy. could have some intervals screwed up
