@@ -157,11 +157,15 @@ completeNotifying ids table = SS.update' (Just . updateState) scope table
 
 mergeStaticWatches :: [NewWatch] -> WatchTable -> WatchTable
 mergeStaticWatches watches table = foldl' mergeWatchIn table watches
-  where mergeWatchIn table' staticW = SS.update' (Just . mergeWatch)
-                                                 (sWatchName .== staticW ^. watchName)
-                                                 table'
-          where mergeWatch eWatch = eWatch & watchInterval      .~ (staticW ^. watchInterval)
+  where mergeWatchIn table' staticW = case tryInsert of
+                                        Just (_, table'') -> table''
+                                        Nothing           -> forceUpdate
+          where forceUpdate = SS.update' (Just . mergeWatch)
+                                         (sWatchName .== staticW ^. watchName)
+                                         table'
+                mergeWatch eWatch = eWatch & watchInterval      .~ (staticW ^. watchInterval)
                                            & watchNotifications .~ (staticW ^. watchNotifications)
+                tryInsert = SS.insert staticW table'
 
 emptyTable :: WatchTable
 emptyTable = S.empty

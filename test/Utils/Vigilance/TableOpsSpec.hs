@@ -124,12 +124,21 @@ spec = do
       in mergeStaticWatches [] table `equalsTable` table
 
     prop "it only updates watchInterval and watchNotifications" $ \(UniqueWatches watches) targetWatch wInterval' wState' notifications' ->
-      let table = fromList (targetWatch:watches)
+      let table = fromList (watches ++ [targetWatch])
           targetWatch' = targetWatch { _watchInterval = wInterval', _watchWState = wState', _watchNotifications = notifications' } 
           table' = mergeStaticWatches [targetWatch'] table
           expectedResult   = targetWatch { _watchInterval = wInterval', _watchNotifications = notifications' }
           resultingWatches = table' ^. with (sWatchName .== (targetWatch' ^. watchName)) . to elements
-      in resultingWatches == [expectedResult]
+      in if resultingWatches == [expectedResult]
+           then True
+           else traceShow ("WAT", resultingWatches, [expectedResult]) $ False
+
+    prop "it inserts new watches" $ \(UniqueWatches existing) (UniqueWatches newWatches) ->
+      let table      = fromList existing
+          newNames   = sort $ map (view watchName) newWatches
+          table'     = mergeStaticWatches newWatches table
+          newInTable = sort $ map (view watchName . snd) $ concatMap (\n -> S.lookup (sWatchName .== n) table') newNames
+      in newInTable == newNames
 
   --TODO: just use the createWatchS and the like here instead?
   describe "acid events" $ do
