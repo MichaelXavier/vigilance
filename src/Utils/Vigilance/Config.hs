@@ -18,6 +18,8 @@ import qualified Data.HashMap.Strict as HM
 import Data.HashMap.Strict (HashMap)
 import Data.Maybe (catMaybes)
 import qualified Data.Text as T
+import Data.Time.Clock.POSIX ( POSIXTime
+                             , getPOSIXTime )
 import GHC.IO (FilePath)
 import qualified Utils.Vigilance.Notifiers.Email as E
 import qualified Utils.Vigilance.Notifiers.Log   as L
@@ -40,7 +42,7 @@ convertConfig cfg = mempty <> Config <$> lud defaultAcidPath "vigilance.acid_pat
                                      <*> (toEmailAddress <$> lu "vigilance.from_email")
                                      <*> (lud defaultPort "vigilance.port")
                                      <*> lud defaultLogPath "vigilance.log_path"
-                                     <*> (parseWatches <$> C.getMap cfg)
+                                     <*> (parseWatches <$> getPOSIXTime <*> C.getMap cfg)
   where lu             = C.lookup cfg
         lud d          = C.lookupDefault d cfg
         toEmailAddress = fmap (EmailAddress . pack)
@@ -49,8 +51,8 @@ reloadConfig :: CT.Config -> IO ()
 reloadConfig = C.reload
 
 -- probably want to make this an either to fail on parse failures
-parseWatches :: HashMap CT.Name CT.Value -> [NewWatch]
-parseWatches globalCfg = HM.foldrWithKey addWatch [] rawWatches -- probably use a traverse
+parseWatches :: POSIXTime -> HashMap CT.Name CT.Value -> [NewWatch]
+parseWatches time globalCfg = HM.foldrWithKey (addWatch time) [] rawWatches -- probably use a traverse
   where rawWatches :: HashMap Text WatchAttrs
         rawWatches = HM.foldrWithKey appendGroup mempty globalCfg
 
@@ -65,16 +67,16 @@ appendGroup fullKey val acc
         wAttr                        = T.drop 1 wAttrWithLeadingDot
         nnull = not . null
 
-addWatch :: Text -> WatchAttrs -> [NewWatch] -> [NewWatch]
-addWatch wName attrs = mappend watches
-  where watches = maybeToList $ buildWatch wName attrs
+addWatch :: POSIXTime -> Text -> WatchAttrs -> [NewWatch] -> [NewWatch]
+addWatch time wName attrs = mappend watches
+  where watches = maybeToList $ buildWatch time wName attrs
 
-buildWatch :: Text -> WatchAttrs -> Maybe NewWatch
-buildWatch wName attrs = Watch <$> pure ()
-                               <*> pure wName
-                               <*> (parseInterval =<< lu "interval")
-                               <*> pure mempty
-                               <*> (pure . parseNotifications $ lud noNotifications "notifications") -- ehh, list of lists not that great, but making arbitrary names for notifications is dumb too
+buildWatch :: POSIXTime -> Text -> WatchAttrs -> Maybe NewWatch
+buildWatch time wName attrs = Watch <$> pure ()
+                                    <*> pure wName
+                                    <*> (parseInterval =<< lu "interval")
+                                    <*> pure (Active time)
+                                    <*> (pure . parseNotifications $ lud noNotifications "notifications") -- ehh, list of lists not that great, but making arbitrary names for notifications is dumb too
   where lu k            = HM.lookup k attrs
         lud d k         = HM.lookupDefault d k attrs
         noNotifications = CT.List []

@@ -140,6 +140,12 @@ spec = do
           newInTable = sort $ map (view watchName . snd) $ concatMap (\n -> S.lookup (sWatchName .== n) table') newNames
       in newInTable == newNames
 
+    it "retains state watch state on new watches" $
+      let table       = fromList []
+          table'      = mergeStaticWatches [baseNewWatch { _watchWState = Triggered }] table
+          newWatchStates = map (view watchWState . snd) $ S.lookup (sWatchName .== (baseNewWatch ^. watchName)) table'
+      in all (== Triggered) newWatchStates
+
   --TODO: just use the createWatchS and the like here instead?
   describe "acid events" $ do
     let acid = openAcidState $ AppState mempty
