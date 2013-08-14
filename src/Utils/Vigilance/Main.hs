@@ -124,8 +124,8 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
 
                         pushLog "waiting for any process to fail"
 
-                        lift $ do
-                          forkIO $ print . snd =<< waitAnyCatchCancel (logger:workers)
+                        lift . forkIO $ do
+                          print . snd =<< waitAnyCatchCancel (logger:workers)
                           wakeUp quitSig (ExitFailure 1)
 
                         pushLog "waiting for quit signal"
