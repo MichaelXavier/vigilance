@@ -28,7 +28,7 @@ pushLogs :: [Text] -> LogCtxT IO ()
 pushLogs ls = do n       <- asks (view ctxName)
                  logChan <- asks (view ctxChan)
                  lift $ writeChan logChan $ map (fmt n) ls
-  where fmt n s = toLogStr $ mconcat [" [", n, "] ", s, "\n"]
+  where fmt n s = toLogStr $ mconcat ["[", n, "] ", s, "\n"]
 
 pushLog :: Text -> LogCtxT IO ()
 pushLog = pushLogs . return

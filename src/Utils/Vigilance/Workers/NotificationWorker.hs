@@ -20,11 +20,11 @@ sendNotifications ws = sequence_ . map ($ ws)
 runWorker :: AcidState AppState -> [Notifier] -> LogCtxT IO ()
 runWorker acid notifiers = renameLogCtx "Notifier Worker" $ do
                               watches <- getNotifyingS acid
-                              --when (not . null $ watches) $ pushLog $ notifyingMsg watches
-                              pushLog $ notifyingMsg watches
+                              when (not . null $ watches) $ pushLog $ notifyingMsg watches
                               sendNotifications watches notifiers
                               completeNotifyingS acid $ map (view watchId) watches
 
 notifyingMsg :: [EWatch] -> Text
-notifyingMsg watches = mconcat ["Notifying for ", length' watches, " watches: ", show watches]
+notifyingMsg watches = mconcat ["Notifying for ", length' watches, " watches: ", names]
   where length' = show . length
+        names   = intercalate ", " $ map (view watchName) watches
