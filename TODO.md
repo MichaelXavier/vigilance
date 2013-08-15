@@ -16,3 +16,5 @@ Issues
   closable queue?
 * starting the watches activated doesn't seem to work.
 * sweepers need to log. all workers do really
+* probably need log levels
+* goddamn fucking getNotifying straight up doesn't work.

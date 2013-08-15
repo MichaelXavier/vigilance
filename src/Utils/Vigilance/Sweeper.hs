@@ -4,6 +4,7 @@ module Utils.Vigilance.Sweeper ( expired
 import Control.Lens
 
 import Data.Time.Clock.POSIX (POSIXTime)
+import Debug.Trace
 
 import Utils.Vigilance.Types
 
@@ -20,7 +21,7 @@ expireWatch w = w & watchWState %~ bumpState
   where bumpState Triggered = Triggered
         bumpState _         = Notifying
 
-sweepWatch :: POSIXTime -> Watch i -> Watch i
+sweepWatch :: Show i => POSIXTime -> Watch i -> Watch i
 sweepWatch t w
   | expired t w = expireWatch w
   | otherwise   = w

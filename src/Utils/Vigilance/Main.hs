@@ -16,7 +16,6 @@ import Control.Lens
 import Control.Monad ( (<=<)
                      , void )
 import Control.Monad.Reader ( runReaderT
-                            , withReaderT
                             , ask
                             , asks)
 import Control.Monad.Trans (lift)
@@ -42,6 +41,7 @@ import Utils.Vigilance.Config ( loadRawConfig
                               , configNotifiers )
 import Utils.Vigilance.Logger ( createLogChan
                               , runInLogCtx
+                              , renameLogCtx
                               , pushLogs
                               , pushLog )
 import Utils.Vigilance.TableOps (fromList)
@@ -73,7 +73,7 @@ runInMainLogCtx rCfg logChan = runInLogCtx ctx $ runWithConfig rCfg
 runWithConfig :: CT.Config -> LogCtxT IO ()
 runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         logCtx    <- ask
-                        logChan   <- asks ctxChan --TODO: rewrite others
+                        logChan   <- asks (view ctxChan) --TODO: rewrite others
                         let notifiers = configNotifiers cfg
                         acid      <- lift $ openLocalStateFrom (cfg ^. configAcidPath) (AppState $ initialState cfg)
                         wakeSig   <- lift $ (newWakeSig :: IO (WakeSig ()))
@@ -83,7 +83,7 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         let notifierH      = errorLogger "Notifier" logCtx
                         let loggerH        = errorLogger "Logger" logCtx
                         let staticH        = errorLogger "Config Reload" logCtx
-                        let sweeperWorker  = SW.runWorker acid
+                        let sweeperWorker  = runInLogCtx logCtx $ SW.runWorker acid
                         let notifierWorker = runInLogCtx logCtx $ NW.runWorker acid notifiers
                         let loggerWorker   = LW.runWorker (cfg ^. configLogPath) logChan
                         let watchWorker    = runInLogCtx logCtx $ WW.runWorker acid rCfg wakeSig
@@ -137,15 +137,15 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
         initialState cfg = fromList $ cfg ^. configWatches
 
 errorLogger :: Text -> LogCtx -> SomeException -> IO ()
-errorLogger name ctx e =  runInLogCtx ctx' $ pushLog errMsg
+errorLogger name ctx e =  runInLogCtx ctx $ renameLogCtx name $ pushLog errMsg
   where errMsg = [qc|Error: {e}|] :: Text
-        ctx'   = ctx { ctxName = name }
 
 sweeperDelay :: Int
 sweeperDelay = 5 -- arbitrary
 
 notifierDelay :: Int
-notifierDelay = 300 -- arbitrary
+--notifierDelay = 300 -- arbitrary
+notifierDelay = 5 -- arbitrary
 
 noConfig :: IO ()
 noConfig = putStrLn "config file argument missing" >> exitFailure

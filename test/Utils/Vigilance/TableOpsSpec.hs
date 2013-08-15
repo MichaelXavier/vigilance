@@ -88,6 +88,14 @@ spec = do
           result             = getNotifying table
       in (map removeId result) == notifying
 
+    it "is queryable after notifying" $
+      let watches = [Watch {_watchId = (), _watchName = "foo", _watchInterval = Every 2 Seconds, _watchWState = Active 123, _watchNotifications = []}]
+          table   = fromList watches
+          table'  = sweepTable 999 table
+          result  = map snd $ S.lookup (sWatchWState .== Notifying) table'
+          expectedResult = map (\w -> w & watchWState .~ Notifying) watches
+      in result `shouldBe` expectedResult
+
   -- dog slow
   describe "completeNotifying" $ do
     prop "it does nothing when given bogus ids" $ \watches ids ->

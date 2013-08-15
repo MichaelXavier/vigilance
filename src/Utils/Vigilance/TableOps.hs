@@ -67,6 +67,7 @@ import Data.Acid
 import Data.Acid.Advanced (update', query')
 import Data.List (foldl')
 import Data.Store.Lens (with)
+import Debug.Trace
 import           Data.Store ((.==), (:.)(..), (.&&))
 import qualified Data.Store as S
 import qualified Data.Store.Storable as SS
@@ -137,12 +138,18 @@ unPauseWatch t = watchLens unPause
         updateState (Active newTime) = Active newTime
         updateState _                = Active t
 
+-- this is an unmitigated disaster because S.map does not reindex properly
+-- https://github.com/Palmik/data-store/issues/3
 sweepTable :: POSIXTime -> WatchTable -> WatchTable
-sweepTable time = S.map sweep
-  where sweep = sweepWatch time
+sweepTable time = map' sweep
+  where sweep  = sweepWatch time
+        map' f = S.fromList' . map f' . S.toList
+          where f' (k, w) = (S.dimO (getId k) S..: S.dimO a S..: S.dimO b  S..: S.dimO c S..:. S.dimM d, w')
+                  where w'@(Watch () a b c d) = f w
 
 getNotifying :: WatchTable -> [EWatch]
 getNotifying = map ewatch . S.lookup (sWatchWState .== Notifying)
+
 
 --TODO: also scope by state
 -- hack, see https://github.com/ekmett/tables/issues/6
@@ -158,10 +165,10 @@ completeNotifying ids table = SS.update' (Just . updateState) scope table
 mergeStaticWatches :: [NewWatch] -> WatchTable -> WatchTable
 mergeStaticWatches watches table = foldl' mergeWatchIn table watches
   where mergeWatchIn table' staticW = case tryInsert of
-                                        Just (_, table'') -> table''
+                                        Just (x, table'') -> table''
                                         Nothing           -> forceUpdate
           where forceUpdate = SS.update' (Just . mergeWatch)
-                                         (sWatchName .== staticW ^. watchName)
+                                         (sWatchName .== (staticW ^. watchName))
                                          table'
                 mergeWatch eWatch = eWatch & watchInterval      .~ (staticW ^. watchInterval)
                                            & watchNotifications .~ (staticW ^. watchNotifications)
@@ -171,7 +178,7 @@ emptyTable :: WatchTable
 emptyTable = S.empty
 
 fromList :: [NewWatch] -> WatchTable
-fromList = foldl' (\table w -> snd $ createWatch w table) emptyTable
+fromList = SS.fromList' --foldl' (\table w -> snd $ createWatch w table) emptyTable
 
 -- ACID State
 allWatchesEvent :: Query AppState [EWatch]
