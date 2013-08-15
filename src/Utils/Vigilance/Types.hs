@@ -248,7 +248,9 @@ defaultPort = 3000
 type LogChan = Chan [LogStr]
 
 -- maybe need a local ctx that can name the context and then nest a chan?
-data LogCtx = LogCtx { _ctxName :: Text, _ctxChan :: LogChan }
+data LogCtx = LogCtx { _ctxName    :: Text
+                     , _ctxChan    :: LogChan
+                     , _ctxVerbose :: Bool  }
 
 makeClassy ''LogCtx
 

@@ -11,5 +11,5 @@ import Utils.Vigilance.Types
 
 runWorker :: AcidState AppState -> LogCtxT IO ()
 runWorker acid = renameLogCtx "Sweeper Worker" $ do
-                   pushLog "Sweeping"
+                   vLog "Sweeping"
                    lift $ sweepTableS acid =<< getPOSIXTime

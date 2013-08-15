@@ -3,11 +3,13 @@ module Utils.Vigilance.Logger ( createLogChan
                               , runInLogCtx
                               , renameLogCtx
                               , pushLog
+                              , vLog
                               , pushLogs ) where
 
 import Control.Concurrent.Chan ( writeChan
                                , newChan )
 import Control.Lens
+import Control.Monad (when)
 import Control.Monad.Reader ( runReaderT
                             , asks
                             , withReaderT )
@@ -32,6 +34,10 @@ pushLogs ls = do n       <- asks (view ctxName)
 
 pushLog :: Text -> LogCtxT IO ()
 pushLog = pushLogs . return
+
+vLog :: Text -> LogCtxT IO ()
+vLog l = do verbose <- asks (view ctxVerbose)
+            when verbose $ pushLog l
 
 runInLogCtx :: LogCtx -> LogCtxT m a -> m a
 runInLogCtx = flip runReaderT

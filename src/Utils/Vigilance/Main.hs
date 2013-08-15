@@ -24,6 +24,7 @@ import Data.Acid ( AcidState
                  , openLocalStateFrom
                  , createCheckpoint
                  , closeAcidState )
+import qualified Data.Configurator as C
 import qualified Data.Configurator.Types as CT
 import GHC.IO (FilePath)
 import System.Exit ( exitFailure
@@ -42,6 +43,7 @@ import Utils.Vigilance.Config ( loadRawConfig
 import Utils.Vigilance.Logger ( createLogChan
                               , runInLogCtx
                               , renameLogCtx
+                              , vLog
                               , pushLogs
                               , pushLog )
 import Utils.Vigilance.TableOps (fromList)
@@ -67,8 +69,9 @@ main = do configPath <- (fmap unpack . listToMaybe) <$> getArgs
 runWithConfigPath :: FilePath -> IO ()
 runWithConfigPath path = bindM2 runInMainLogCtx (loadRawConfig path) createLogChan
 
-runInMainLogCtx rCfg logChan = runInLogCtx ctx $ runWithConfig rCfg
-  where ctx = LogCtx "Main" logChan
+runInMainLogCtx rCfg logChan = do verbose <- C.lookupDefault False rCfg "vigilance.verbose"
+                                  let ctx = LogCtx "Main" logChan verbose
+                                  runInLogCtx ctx $ runWithConfig rCfg
 
 runWithConfig :: CT.Config -> LogCtxT IO ()
 runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
@@ -89,22 +92,22 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         let watchWorker    = runInLogCtx logCtx $ WW.runWorker acid rCfg wakeSig
                         let webApp         = WebApp acid cfg logChan
 
-                        pushLog "Starting logger" -- TIME PARADOX
+                        vLog "Starting logger" -- TIME PARADOX
 
                         logger <- lift $ async $ workForeverWithDelayed sweeperDelay loggerH loggerWorker
 
-                        pushLog "Starting sweeper"
+                        vLog "Starting sweeper"
 
                         sweeper <- lift $ async $ workForeverWithDelayed sweeperDelay sweeperH sweeperWorker
 
-                        pushLog "Sweeper started"
-                        pushLog "Starting notifier"
+                        vLog "Sweeper started"
+                        vLog "Starting notifier"
 
                         notifier <- lift $ async $ workForeverWithDelayed notifierDelay notifierH notifierWorker
 
-                        pushLog "Notifier started"
+                        vLog "Notifier started"
 
-                        pushLog "Starting web server"
+                        vLog "Starting web server"
                         --TODO: give custom logger to server
                         server <- lift $ async $ runServer webApp
 
@@ -115,20 +118,20 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                                       , notifier
                                       , static ]
 
-                        pushLog "configuring signal handlers"
+                        vLog "configuring signal handlers"
 
                         lift $ do
                           installHandler sigHUP  (Catch $ wakeUp wakeSig ()) Nothing
                           installHandler sigINT  (Catch $ wakeUp quitSig ExitSuccess) Nothing
                           installHandler sigTERM (Catch $ wakeUp quitSig ExitSuccess) Nothing
 
-                        pushLog "waiting for any process to fail"
+                        vLog "waiting for any process to fail"
 
                         lift . forkIO $ do
                           print . snd =<< waitAnyCatchCancel (logger:workers)
                           wakeUp quitSig (ExitFailure 1)
 
-                        pushLog "waiting for quit signal"
+                        vLog "waiting for quit signal"
                         code <- lift $ waitForWake quitSig
                         lift $ print code
 

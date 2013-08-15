@@ -16,3 +16,4 @@ Issues
   closable queue?
 * probably need log levels
 * waiting on fix in data-store for bug in S.map
+* make verbocity togglable
