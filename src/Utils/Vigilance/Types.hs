@@ -13,7 +13,7 @@ module Utils.Vigilance.Types where
 import Control.Applicative ( (<$>)
                            , (<*>)
                            , pure)
-import Control.Concurrent.Chan (Chan)
+import Control.Concurrent.STM.TChan (TChan)
 import Control.Monad.Reader (ReaderT)
 import Control.Lens hiding ((.=))
 import Control.Lens.TH
@@ -30,7 +30,8 @@ import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Text (Text)
 import Data.Typeable (Typeable)
 import qualified Data.Vector as V
-import System.Log.FastLogger (LogStr)
+import System.Log.FastLogger ( LogStr
+                             , ToLogStr(..) )
 import Yesod.Core.Dispatch (PathPiece)
 
 newtype ID = ID { _unID :: Int } deriving ( Show
@@ -211,22 +212,27 @@ newtype AppState = AppState { _wTable :: WatchTable } deriving (Typeable)
 
 makeLenses ''AppState
 
+data LogCfg = LogCfg { _logCfgPath    :: FilePath
+                     , _logCfgVerbose :: Bool } deriving (Show, Eq)
+
+makeClassy ''LogCfg
+
 --TODO: http port
 data Config = Config { _configAcidPath  :: FilePath
                      , _configFromEmail :: Maybe EmailAddress
                      , _configPort      :: Int
-                     , _configLogPath   :: FilePath
+                     , _configLogCfg    :: LogCfg
                      , _configWatches   :: [NewWatch] } deriving (Show, Eq)
 
 makeClassy ''Config
 
 -- this is unsound
 instance Monoid Config where
-  mempty = Config defaultAcidPath Nothing defaultPort defaultLogPath mempty
+  mempty = Config defaultAcidPath Nothing defaultPort defaultLogCfg mempty
   Config apa ea pa la wa `mappend` Config apb eb pb lb wb = Config (nonDefault defaultAcidPath apa apb)
                                                                    (chooseJust ea eb)
                                                                    (nonDefault defaultPort pa pb)
-                                                                   (nonDefault defaultLogPath la lb)
+                                                                   (nonDefault defaultLogCfg la lb)
                                                                    (mappend wa wb)
     where chooseJust a@(Just _) b = a
           chooseJust _ b          = b
@@ -234,6 +240,9 @@ instance Monoid Config where
             | a == defValue = b
             | b == defValue = a
             | otherwise     = b
+
+defaultLogCfg :: LogCfg
+defaultLogCfg = LogCfg defaultLogPath False
 
 defaultLogPath :: FilePath
 defaultLogPath = "log/vigilance.log"
@@ -244,13 +253,19 @@ defaultAcidPath = "state/AppState"
 defaultPort :: Int
 defaultPort = 3000
 
+data LogMessage = LogMessage        Text |
+                  VerboseLogMessage Text deriving (Show, Eq)
+
+instance ToLogStr LogMessage where
+  toLogStr (LogMessage x)        = toLogStr x
+  toLogStr (VerboseLogMessage x) = toLogStr x
+
 -- should i use chan, tmchan?
-type LogChan = Chan [LogStr]
+type LogChan = TChan [LogMessage]
 
 -- maybe need a local ctx that can name the context and then nest a chan?
 data LogCtx = LogCtx { _ctxName    :: Text
-                     , _ctxChan    :: LogChan
-                     , _ctxVerbose :: Bool  }
+                     , _ctxChan    :: LogChan }
 
 makeClassy ''LogCtx
 

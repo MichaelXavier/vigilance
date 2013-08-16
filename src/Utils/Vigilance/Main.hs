@@ -12,6 +12,8 @@ import Control.Concurrent.Async ( waitAnyCatchCancel
                                 , cancel
                                 , Async
                                 , async )
+import Control.Concurrent.STM ( atomically
+                              , newEmptyTMVar )
 import Control.Lens
 import Control.Monad ( (<=<)
                      , void )
@@ -69,14 +71,14 @@ main = do configPath <- (fmap unpack . listToMaybe) <$> getArgs
 runWithConfigPath :: FilePath -> IO ()
 runWithConfigPath path = bindM2 runInMainLogCtx (loadRawConfig path) createLogChan
 
-runInMainLogCtx rCfg logChan = do verbose <- C.lookupDefault False rCfg "vigilance.verbose"
-                                  let ctx = LogCtx "Main" logChan verbose
+runInMainLogCtx rCfg logChan = do let ctx = LogCtx "Main" logChan
                                   runInLogCtx ctx $ runWithConfig rCfg
 
 runWithConfig :: CT.Config -> LogCtxT IO ()
 runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         logCtx    <- ask
                         logChan   <- asks (view ctxChan) --TODO: rewrite others
+                        logCfgV   <- lift $ atomically $ newEmptyTMVar
                         let notifiers = configNotifiers cfg
                         acid      <- lift $ openLocalStateFrom (cfg ^. configAcidPath) (AppState $ initialState cfg)
                         wakeSig   <- lift $ (newWakeSig :: IO (WakeSig ()))
@@ -88,13 +90,14 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         let staticH        = errorLogger "Config Reload" logCtx
                         let sweeperWorker  = runInLogCtx logCtx $ SW.runWorker acid
                         let notifierWorker = runInLogCtx logCtx $ NW.runWorker acid notifiers
-                        let loggerWorker   = LW.runWorker (cfg ^. configLogPath) logChan
+                        let logCfg         = cfg ^. configLogCfg
+                        let loggerWorker   = LW.runWorker logChan logCfg logCfgV
                         let watchWorker    = runInLogCtx logCtx $ WW.runWorker acid rCfg wakeSig
                         let webApp         = WebApp acid cfg logChan
 
                         vLog "Starting logger" -- TIME PARADOX
 
-                        logger <- lift $ async $ workForeverWithDelayed sweeperDelay loggerH loggerWorker
+                        logger <- lift $ async $ workForeverWith loggerH loggerWorker
 
                         vLog "Starting sweeper"
 

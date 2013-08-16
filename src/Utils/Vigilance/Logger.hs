@@ -6,8 +6,9 @@ module Utils.Vigilance.Logger ( createLogChan
                               , vLog
                               , pushLogs ) where
 
-import Control.Concurrent.Chan ( writeChan
-                               , newChan )
+import Control.Concurrent.STM (atomically)
+import Control.Concurrent.STM.TChan ( writeTChan
+                                    , newTChan )
 import Control.Lens
 import Control.Monad (when)
 import Control.Monad.Reader ( runReaderT
@@ -22,22 +23,28 @@ import System.Log.FastLogger ( ToLogStr(..) ) --todo: reexport from types
 import Utils.Vigilance.Types
 
 createLogChan :: IO LogChan
-createLogChan = newChan
+createLogChan = atomically $ newTChan
 
--- why u no date format :(
--- why must i add newlines you dick?
 pushLogs :: [Text] -> LogCtxT IO ()
-pushLogs ls = do n       <- asks (view ctxName)
-                 logChan <- asks (view ctxChan)
-                 lift $ writeChan logChan $ map (fmt n) ls
-  where fmt n s = toLogStr $ mconcat ["[", n, "] ", s, "\n"]
+pushLogs = pushLogs' . map LogMessage
+
+vLogs :: [Text] -> LogCtxT IO ()
+vLogs = pushLogs' . map VerboseLogMessage
 
 pushLog :: Text -> LogCtxT IO ()
-pushLog = pushLogs . return
+pushLog = pushLogs' . return . LogMessage
 
 vLog :: Text -> LogCtxT IO ()
-vLog l = do verbose <- asks (view ctxVerbose)
-            when verbose $ pushLog l
+vLog = pushLogs' . return . VerboseLogMessage
+
+pushLogs' :: [LogMessage] -> LogCtxT IO ()
+pushLogs' ls = do n        <- asks (view ctxName)
+                  logChan  <- asks (view ctxChan)
+                  lift $ atomically $ writeTChan logChan $ map (fmt n) ls
+  where fmt n (LogMessage s)        = LogMessage $ fmt' n s
+        fmt n (VerboseLogMessage s) = VerboseLogMessage $ fmt' n s
+        fmt' n s                    = mconcat ["[", n, "] ", s, "\n"] -- why must i add newlines you dick?
+
 
 runInLogCtx :: LogCtx -> LogCtxT m a -> m a
 runInLogCtx = flip runReaderT

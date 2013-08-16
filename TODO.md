@@ -14,6 +14,5 @@ still around. oh well.
 Issues
 * race condition with exit causes process to exit before logs flush. maybe a
   closable queue?
-* probably need log levels
 * waiting on fix in data-store for bug in S.map
-* make verbocity togglable
+* hook config reload into reloading log config

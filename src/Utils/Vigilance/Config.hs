@@ -41,11 +41,13 @@ convertConfig :: CT.Config -> IO Config
 convertConfig cfg = mempty <> Config <$> lud defaultAcidPath "vigilance.acid_path"
                                      <*> (toEmailAddress <$> lu "vigilance.from_email")
                                      <*> (lud defaultPort "vigilance.port")
-                                     <*> lud defaultLogPath "vigilance.log_path"
+                                     <*> parseLogCfg
                                      <*> (parseWatches <$> getPOSIXTime <*> C.getMap cfg)
   where lu             = C.lookup cfg
         lud d          = C.lookupDefault d cfg
         toEmailAddress = fmap (EmailAddress . pack)
+        parseLogCfg = LogCfg <$> lud defaultLogPath "vigilance.log.path"
+                             <*> lud False          "vigilance.log.verbose"
 
 reloadConfig :: CT.Config -> IO ()
 reloadConfig = C.reload
