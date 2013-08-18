@@ -5,8 +5,8 @@ module Utils.Vigilance.Workers.LoggerWorker ( runWorker ) where
 import Prelude (FilePath)
 import ClassyPrelude hiding (FilePath)
 import Control.Concurrent.STM (orElse, atomically, STM)
-import Control.Concurrent.STM.TChan (readTChan)
-import Control.Concurrent.STM.TMVar (TMVar, takeTMVar)
+import Control.Concurrent.STM.TChan ( readTChan
+                                    , TChan )
 import Control.Lens
 import Control.Monad ( forever
                      , (<=<) )
@@ -25,21 +25,23 @@ import Utils.Vigilance.Types
 
 -- lift into the either monad?
 -- liftM Foo (takeTMVar fooTMVar) `orElse` liftM Bar (readTChan barTChan) 
-runWorker :: LogChan -> LogCfg -> TMVar LogCfg -> IO ()
-runWorker q cfg cfgV = do
-  logger <- openLogger $ cfg ^. logCfgPath
-  logOrReconfigure logger q cfgV $ cfg ^. logCfgVerbose
+runWorker :: LogChan -> Config -> TChan Config -> IO ()
+runWorker q Config { _configLogCfg = logCfg } cfgChan = do
+  logger <- openLogger $ logCfg ^. logCfgPath
+  logOrReconfigure logger q cfgChan $ logCfg ^. logCfgVerbose
 
-logOrReconfigure :: Logger -> LogChan -> TMVar LogCfg -> Bool -> IO ()
-logOrReconfigure logger q cfgV verbose = do
-  res <- atomically $ popOrReconfigure q cfgV
+logOrReconfigure :: Logger -> LogChan -> TChan Config -> Bool -> IO ()
+logOrReconfigure logger q cfgChan verbose = do
+  res <- atomically $ popOrGetCfg q cfgChan
   case res of
     Left msgs -> logMessages logger verbose msgs >> recurse
-    Right cfg -> rmLogger logger                 >> runWorker q cfg cfgV
-  where recurse = logOrReconfigure logger q cfgV verbose
+    Right cfg -> rmLogger logger                 >> runWorker q cfg cfgChan
+  where recurse = logOrReconfigure logger q cfgChan verbose
 
-popOrReconfigure :: LogChan -> TMVar LogCfg -> STM (Either [LogMessage] LogCfg)
-popOrReconfigure q cfgV = (Left <$> (readTChan q)) `orElse` (Right <$> (takeTMVar cfgV))
+popOrGetCfg :: LogChan -> TChan Config -> STM (Either [LogMessage] Config)
+popOrGetCfg q cfgChan = pop `orElse` getCfg
+  where pop    = Left <$> readTChan q
+        getCfg = Right <$> readTChan cfgChan
 
 --TODO: actually use verbosity
 logMessages :: Logger -> Bool -> [LogMessage] -> IO ()

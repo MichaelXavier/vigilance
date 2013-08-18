@@ -13,7 +13,10 @@ import Control.Concurrent.Async ( waitAnyCatchCancel
                                 , Async
                                 , async )
 import Control.Concurrent.STM ( atomically
-                              , newEmptyTMVar )
+                              , newBroadcastTChan
+                              , TChan
+                              , writeTChan
+                              , dupTChan )
 import Control.Lens
 import Control.Monad ( (<=<)
                      , void )
@@ -78,10 +81,14 @@ runWithConfig :: CT.Config -> LogCtxT IO ()
 runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         logCtx    <- ask
                         logChan   <- asks (view ctxChan) --TODO: rewrite others
-                        logCfgV   <- lift $ atomically $ newEmptyTMVar
+
+                        (configChanW, configChanR, configChanR') <- lift $ atomically $ do w  <- newBroadcastTChan
+                                                                                           r  <- dupTChan w
+                                                                                           r' <- dupTChan w
+                                                                                           return (w, r, r')
+
                         let notifiers = configNotifiers cfg
                         acid      <- lift $ openLocalStateFrom (cfg ^. configAcidPath) (AppState $ initialState cfg)
-                        wakeSig   <- lift $ (newWakeSig :: IO (WakeSig ()))
                         quitSig   <- lift $ (newWakeSig :: IO (WakeSig ExitCode))
 
                         let sweeperH       = errorLogger "Sweeper" logCtx
@@ -91,8 +98,8 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         let sweeperWorker  = runInLogCtx logCtx $ SW.runWorker acid
                         let notifierWorker = runInLogCtx logCtx $ NW.runWorker acid notifiers
                         let logCfg         = cfg ^. configLogCfg
-                        let loggerWorker   = LW.runWorker logChan logCfg logCfgV
-                        let watchWorker    = runInLogCtx logCtx $ WW.runWorker acid rCfg wakeSig
+                        let loggerWorker   = LW.runWorker logChan cfg configChanR
+                        let watchWorker    = runInLogCtx logCtx $ WW.runWorker acid configChanR'
                         let webApp         = WebApp acid cfg logChan
 
                         vLog "Starting logger" -- TIME PARADOX
@@ -124,7 +131,7 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         vLog "configuring signal handlers"
 
                         lift $ do
-                          installHandler sigHUP  (Catch $ wakeUp wakeSig ()) Nothing
+                          installHandler sigHUP  (Catch $ broadcastCfgReload rCfg configChanW) Nothing
                           installHandler sigINT  (Catch $ wakeUp quitSig ExitSuccess) Nothing
                           installHandler sigTERM (Catch $ wakeUp quitSig ExitSuccess) Nothing
 
@@ -141,6 +148,10 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         cleanUp acid workers code
   where initialState :: Config -> WatchTable
         initialState cfg = fromList $ cfg ^. configWatches
+
+broadcastCfgReload :: CT.Config -> TChan Config -> IO ()
+broadcastCfgReload rCfg chan = C.reload rCfg >> broadcast
+  where broadcast = atomically . writeTChan chan =<< convertConfig rCfg
 
 errorLogger :: Text -> LogCtx -> SomeException -> IO ()
 errorLogger name ctx e =  runInLogCtx ctx $ renameLogCtx name $ pushLog errMsg
