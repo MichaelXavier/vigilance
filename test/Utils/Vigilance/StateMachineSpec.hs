@@ -8,7 +8,7 @@ import Utils.Vigilance.StateMachine
 import SpecHelper
 
 spec :: Spec
-spec = do
+spec = parallel $ do
   describe "all valid transitions" $ do
     it "returns the correct final state" $
       snd <$> runValidMachine `shouldBe` Just Final

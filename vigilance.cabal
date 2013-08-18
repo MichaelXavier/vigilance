@@ -58,6 +58,7 @@ Test-Suite test-vigilance
   Type: exitcode-stdio-1.0
   hs-source-dirs:     src,test
   Main-Is: Spec.hs
+  ghc-options: -threaded -O3 -rtsopts
   build-depends:       base   >=4.6 && <4.7,
                        async == 2.*,
                        aeson >=0.6 && <1.0,

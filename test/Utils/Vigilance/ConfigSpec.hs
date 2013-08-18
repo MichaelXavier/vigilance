@@ -8,7 +8,7 @@ import SpecHelper
 import Utils.Vigilance.Config
 
 spec :: Spec
-spec = do
+spec = parallel $ do
   describe "loadConfig" $ do
     it "parses the empty config" $ do
       "empty_config.conf" `shouldParseConfig` mempty

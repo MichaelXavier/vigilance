@@ -11,7 +11,7 @@ import SpecHelper
 import Utils.Vigilance.Notifiers.Email
 
 spec :: Spec
-spec = do
+spec = parallel $ do
   describe "generateEmails" $ do
     prop "it always uses the context's from" $ \(NonEmpty watches) email ->
       let watches'   = map (\w -> w & watchNotifications <>~ [EmailNotification email]) watches

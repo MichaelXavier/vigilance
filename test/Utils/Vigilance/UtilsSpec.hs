@@ -5,7 +5,7 @@ import Utils.Vigilance.Utils
 import SpecHelper
 
 spec :: Spec
-spec = do
+spec = parallel $ do
   describe "watchIntervalSeconds" $ do
     it "converts seconds" $ watchIntervalSeconds (Every 3 Seconds) `shouldBe` 3
     it "converts minutes" $ watchIntervalSeconds (Every 3 Minutes) `shouldBe` 180

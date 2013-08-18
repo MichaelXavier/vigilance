@@ -15,7 +15,7 @@ import SpecHelper
 import Debug.Trace
 
 spec :: Spec
-spec = do
+spec = parallel $ do
   describe "table properties" $ do
     prop "it deletes data that is known" $ \w ->
       let (w', table) = createWatch w emptyTable

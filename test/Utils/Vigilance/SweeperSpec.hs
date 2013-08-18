@@ -7,7 +7,7 @@ import SpecHelper
 import Utils.Vigilance.Sweeper
 
 spec :: Spec
-spec = do
+spec = parallel $ do
   describe "expired" $ do
     prop "inactive ewatch always false" $ \(w :: EWatch) t ->
       let ws = case w ^. watchWState of

@@ -6,7 +6,7 @@ import Data.Aeson
 import SpecHelper
 
 spec :: Spec
-spec = do
+spec = parallel $ do
   describe "Monoid WatchState" $ do
     prop "obeys the law" $
       property $ eq $ prop_Monoid (T :: T WatchState)
