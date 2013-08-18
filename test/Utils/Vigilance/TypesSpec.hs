@@ -17,7 +17,7 @@ spec = do
         _      -> result == b
   describe "Monoid Config" $ do
     it "has reasonable defaults" $
-      mempty `shouldBe` Config "state/AppState" Nothing 3000 "log/vigilance.log" []
+      mempty `shouldBe` Config "state/AppState" Nothing 3000 (LogCfg "log/vigilance.log" False) []
 
     prop "obeys the law" $
       property $ eq $ prop_Monoid (T :: T Config)
@@ -31,12 +31,12 @@ spec = do
       in config' ^. configFromEmail == Just email
 
     prop "it chooses left non-default log path over default right" $ \path ->
-      let config' = mempty & configLogPath .~ path <> mempty :: Config
-      in config' ^. configLogPath == path
+      let config' = mempty & configLogCfg . logCfgPath .~ path <> mempty :: Config
+      in config' ^. configLogCfg . logCfgPath == path
 
     prop "it chooses right non-default log path over default left" $ \path ->
-      let config' = mempty <> mempty & configLogPath .~ path :: Config
-      in config' ^. configLogPath == path
+      let config' = mempty <> mempty & configLogCfg . logCfgPath .~ path :: Config
+      in config' ^. configLogCfg . logCfgPath == path
 
   describe "json parsing" $ do
     prop "parses NewWatch roundtrip" $

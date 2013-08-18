@@ -9,10 +9,9 @@ then never add it to the config, it may be surprising when you find out its
 still around. oh well.
 
 * documentation of config stuff
-* log context with log message
 
 Issues
 * race condition with exit causes process to exit before logs flush. maybe a
   closable queue?
 * waiting on fix in data-store for bug in S.map
-* hook config reload into reloading log config
+* parallel test execution

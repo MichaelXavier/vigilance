@@ -40,13 +40,14 @@ instance Eq LaxWatchMatcher where
           cleanState s          = s
 
 fullConfig :: Config
-fullConfig = Config "ACIDPATH" (Just . EmailAddress $ "vigilance@example.com") 9000 "LOGPATH" []
+fullConfig = Config "ACIDPATH" (Just . EmailAddress $ "vigilance@example.com") 9000 logCfg []
+  where logCfg = LogCfg "LOGPATH" True
 
 partialConfig :: Config
-partialConfig = Config "ACIDPATH" (Just . EmailAddress $ "vigilance@example.com") defaultPort defaultLogPath []
+partialConfig = Config "ACIDPATH" (Just . EmailAddress $ "vigilance@example.com") defaultPort defaultLogCfg []
 
 configWithWatches :: Config
-configWithWatches = Config "ACIDPATH" (Just . EmailAddress $ "vigilance@example.com") defaultPort defaultLogPath [w1, w2]
+configWithWatches = Config "ACIDPATH" (Just . EmailAddress $ "vigilance@example.com") defaultPort defaultLogCfg [w1, w2]
   where w1 = Watch () "foo" (Every 2 Seconds) (Active 0) [ EmailNotification . EmailAddress $ "notify@example.com"
                                                      , EmailNotification . EmailAddress $ "notify2@example.com"]
         w2 = Watch () "bar" (Every 3 Minutes) (Active 0) []

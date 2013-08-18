@@ -64,6 +64,7 @@ $(derive makeArbitrary ''WatchInterval)
 $(derive makeArbitrary ''NotificationPreference)
 $(derive makeArbitrary ''TimeUnit)
 $(derive makeArbitrary ''ID)
+$(derive makeArbitrary ''LogCfg)
 $(derive makeArbitrary ''Config)
 
 instance Arbitrary NewWatch where
