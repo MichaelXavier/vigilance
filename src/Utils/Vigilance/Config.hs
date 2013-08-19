@@ -71,9 +71,9 @@ appendGroup fullKey val acc
 
 addWatch :: POSIXTime -> Text -> WatchAttrs -> [NewWatch] -> [NewWatch]
 addWatch time wName attrs = mappend watches
-  where watches = maybeToList $ buildWatch time wName attrs
+  where watches = maybeToList $ buildWatch time (WatchName wName) attrs
 
-buildWatch :: POSIXTime -> Text -> WatchAttrs -> Maybe NewWatch
+buildWatch :: POSIXTime -> WatchName -> WatchAttrs -> Maybe NewWatch
 buildWatch time wName attrs = Watch <$> pure ()
                                     <*> pure wName
                                     <*> (parseInterval =<< lu "interval")

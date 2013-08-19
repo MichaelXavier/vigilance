@@ -69,17 +69,20 @@ $(derive makeArbitrary ''Config)
 
 instance Arbitrary NewWatch where
   arbitrary = Watch <$> pure ()
-                    <*> genText
+                    <*> arbitrary
                     <*> arbitrary
                     <*> arbitrary
                     <*> arbitrary
 
 instance Arbitrary EWatch where
   arbitrary = Watch <$> arbitrary
-                    <*> genText
                     <*> arbitrary
                     <*> arbitrary
                     <*> arbitrary
+                    <*> arbitrary
+
+instance Arbitrary WatchName where
+  arbitrary = WatchName <$> genText
 
 instance Arbitrary EmailAddress where
   arbitrary = EmailAddress <$> genText

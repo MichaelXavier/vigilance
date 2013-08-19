@@ -34,11 +34,11 @@ instance Yesod WebApp where
   makeSessionBackend = const $ return Nothing
 
 mkYesod "WebApp" [parseRoutes|
-  /watches             WatchesR      GET POST
-  /watches/#ID         WatchR        GET DELETE
-  /watches/#ID/pause   PauseWatchR   POST
-  /watches/#ID/unpause UnPauseWatchR POST
-  /watches/#ID/checkin CheckInWatchR POST
+  /watches               WatchesR      GET POST
+  /watches/#WatchName         WatchR        GET DELETE
+  /watches/#WatchName/pause   PauseWatchR   POST
+  /watches/#WatchName/unpause UnPauseWatchR POST
+  /watches/#WatchName/checkin CheckInWatchR POST
 |]
 
 getWatchesR :: Handler Value
@@ -47,19 +47,19 @@ getWatchesR = returnJson =<< allWatchesS =<< getDb
 postWatchesR :: Handler Value
 postWatchesR = returnJson =<< bindM2 createWatchS getDb parseJsonBody_
 
-getWatchR :: ID -> Handler Value
+getWatchR :: WatchName -> Handler Value
 getWatchR =  returnJson <=< onWatch findWatchS
 
-deleteWatchR :: ID -> Handler Value
+deleteWatchR :: WatchName -> Handler Value
 deleteWatchR = returnJson <=< onWatch deleteWatchS
 
-postPauseWatchR :: ID -> Handler Value
+postPauseWatchR :: WatchName -> Handler Value
 postPauseWatchR = returnJson <=< onWatch pauseWatchS
 
-postUnPauseWatchR :: ID -> Handler Value
+postUnPauseWatchR :: WatchName -> Handler Value
 postUnPauseWatchR = returnJson <=< bindM3 unPauseWatchS getDb getPOSIXTime' . return
 
-postCheckInWatchR :: ID -> Handler Value
+postCheckInWatchR :: WatchName -> Handler Value
 postCheckInWatchR = returnJson <=< bindM3 checkInWatchS getDb getPOSIXTime' . return
 
 --TODO: configurable port

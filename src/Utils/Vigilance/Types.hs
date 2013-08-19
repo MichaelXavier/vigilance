@@ -4,12 +4,15 @@
 {-# LANGUAGE GADTs                      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE NoImplicitPrelude          #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
 module Utils.Vigilance.Types where
 
+import Prelude (FilePath)
+import ClassyPrelude hiding (FilePath)
 import Control.Applicative ( (<$>)
                            , (<*>)
                            , pure)
@@ -26,6 +29,7 @@ import Data.SafeCopy ( base
 import           Data.Store (M, O, (.:.), (:.), (.<), (.<=), (.>), (.>=), (./=), (.==), (.&&), (.||), Store)
 import qualified Data.Store as S
 import           Data.Store.Storable (Storable(..))
+import Data.String (IsString)
 import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Text (Text)
 import Data.Typeable (Typeable)
@@ -146,9 +150,21 @@ instance FromJSON WatchState where
           parseStateFromName obj "active" = Active <$> (unPOSIXWrapper <$> obj .: "last_check_in")
           parseStateFromName _ _           = fail "Invalid value"
 
+
+newtype WatchName = WatchName { _unWatchName :: Text } deriving ( Show
+                                                                , Eq
+                                                                , Ord
+                                                                , FromJSON
+                                                                , ToJSON
+                                                                , IsString
+                                                                , Read
+                                                                , PathPiece ) -- not so sure about the isstring
+
+makeLenses ''WatchName
+
 --TODO: notification backend
 data Watch i = Watch { _watchId            :: i
-                     , _watchName          :: Text
+                     , _watchName          :: WatchName
                      , _watchInterval      :: WatchInterval
                      , _watchWState        :: WatchState
                      , _watchNotifications :: [NotificationPreference] } deriving (Show, Eq, Typeable, Ord)
@@ -195,9 +211,9 @@ data WatchStoreTag = WatchStoreTag
 
 -- tagspec
 instance Storable NewWatch where
-  type StoreTS   NewWatch = ID :. Text :. WatchInterval :. WatchState :. NotificationPreference
-  type StoreKRS  NewWatch = O  :. O    :. O             :. O          :. M
-  type StoreIRS  NewWatch = O  :. O    :. M             :. M          :. M
+  type StoreTS   NewWatch = ID :. WatchName :. WatchInterval :. WatchState :. NotificationPreference
+  type StoreKRS  NewWatch = O  :. O         :. O             :. O          :. M
+  type StoreIRS  NewWatch = O  :. O         :. M             :. M          :. M
 
   key (Watch _ wn wi ws wns) = 
     S.dimA    S..:
@@ -273,6 +289,7 @@ type LogCtxT m a = ReaderT LogCtx m a
 
 type Notifier = [EWatch] -> LogCtxT IO ()
 
+deriveSafeCopy 0 'base ''WatchName
 deriveSafeCopy 0 'base ''WatchState
 deriveSafeCopy 0 'base ''TimeUnit
 deriveSafeCopy 0 'base ''WatchInterval

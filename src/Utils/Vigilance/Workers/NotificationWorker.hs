@@ -22,9 +22,9 @@ runWorker acid notifiers = renameLogCtx "Notifier Worker" $ do
                               watches <- getNotifyingS acid
                               when (not . null $ watches) $ pushLog $ notifyingMsg watches
                               sendNotifications watches notifiers
-                              completeNotifyingS acid $ map (view watchId) watches
+                              completeNotifyingS acid $ map (view watchName) watches
 
 notifyingMsg :: [EWatch] -> Text
 notifyingMsg watches = mconcat ["Notifying for ", length' watches, " watches: ", names]
   where length' = show . length
-        names   = intercalate ", " $ map (view watchName) watches
+        names   = intercalate ", " $ map (view (watchName . unWatchName)) watches

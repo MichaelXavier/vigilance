@@ -14,4 +14,4 @@ Issues
 * race condition with exit causes process to exit before logs flush. maybe a
   closable queue?
 * waiting on fix in data-store for bug in S.map
-* ID-oriented API is somewhat impractical. Probably a better idea to use names.
+* responses from stuff like pause are wacky. they return empty arrays and stuff

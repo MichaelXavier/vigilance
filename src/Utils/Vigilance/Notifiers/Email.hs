@@ -67,7 +67,7 @@ Vigilence
   where watchSummary = mconcat $ map summarize ws
         summarize w  = [qc|- {name} ({interval})|] :: LBS.ByteString
           where interval = w ^. watchInterval
-                name     = w ^. watchName . to unpack
+                name     = w ^. watchName . unWatchName . to unpack
 
 watchesWithEmails :: EWatch -> [(EmailAddress, [EWatch])]
 watchesWithEmails w = zip emails (repeat [w] :: [[EWatch]])

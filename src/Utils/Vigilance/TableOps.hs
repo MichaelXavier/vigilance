@@ -109,30 +109,26 @@ createWatch :: NewWatch -> WatchTable -> (EWatch, WatchTable)
 createWatch w s = (w & watchId .~ getId k, s')
   where (k, s') = SS.insert' w s
 
-deleteWatch :: ID -> WatchTable -> WatchTable
-deleteWatch i = S.delete (sWatchId .== i)
+deleteWatch :: WatchName -> WatchTable -> WatchTable
+deleteWatch n = S.delete (sWatchName .== n)
 
-findWatch :: ID -> WatchTable -> Maybe EWatch
-findWatch i = listToMaybe . map ewatch . S.lookup (sWatchId .== i)
+findWatch :: WatchName -> WatchTable -> Maybe EWatch
+findWatch n = listToMaybe . map ewatch . S.lookup (sWatchName .== n)
 
---watchLens :: (Indexable ID p0, Profunctor p0)
---             => p0 NewWatch NewWatch
---             -> ID
---             -> WatchTable
---             -> WatchTable
-watchLens f i table = table & with (sWatchId .== i) %~ (over mapped f)
+--TODO: type
+watchLens f n table = table & with (sWatchName .== n) %~ (over mapped f)
 
-checkInWatch :: POSIXTime -> ID -> WatchTable -> WatchTable
+checkInWatch :: POSIXTime -> WatchName -> WatchTable -> WatchTable
 checkInWatch time = watchLens doCheckIn
   where doCheckIn w        = w & watchWState %~ updateState
         updateState Paused = Paused
         updateState _      = Active time
 
-pauseWatch :: ID -> WatchTable -> WatchTable
+pauseWatch :: WatchName -> WatchTable -> WatchTable
 pauseWatch = watchLens pause
   where pause w = w & watchWState .~ Paused
 
-unPauseWatch :: POSIXTime -> ID -> WatchTable -> WatchTable
+unPauseWatch :: POSIXTime -> WatchName -> WatchTable -> WatchTable
 unPauseWatch t = watchLens unPause
   where unPause w = w & watchWState %~ updateState
         updateState (Active newTime) = Active newTime
@@ -154,12 +150,12 @@ getNotifying = map ewatch . S.lookup (sWatchWState .== Notifying)
 --TODO: also scope by state
 -- hack, see https://github.com/ekmett/tables/issues/6
 -- so not performant
-completeNotifying :: [ID] -> WatchTable -> WatchTable
+completeNotifying :: [WatchName] -> WatchTable -> WatchTable
 completeNotifying [] table  = table
-completeNotifying ids table = SS.update' (Just . updateState) scope table
+completeNotifying names table = SS.update' (Just . updateState) scope table
   where updateState w = w & watchWState .~ Triggered
-        scope = idScope .&& isNotifyingScope
-        idScope = SEL.any $ map (\i -> sWatchId .== i) ids
+        scope            = nameScope .&& isNotifyingScope
+        nameScope        = SEL.any $ map (sWatchName .==) names
         isNotifyingScope = sWatchWState .== Notifying
 
 mergeStaticWatches :: [NewWatch] -> WatchTable -> WatchTable
@@ -187,20 +183,20 @@ allWatchesEvent = view (wTable . to allWatches)
 createWatchEvent :: NewWatch -> Update AppState EWatch
 createWatchEvent w = wTable %%= (createWatch w)
 
-deleteWatchEvent :: ID -> Update AppState ()
+deleteWatchEvent :: WatchName -> Update AppState ()
 deleteWatchEvent i = wTable %= (deleteWatch i)
 
-findWatchEvent :: ID -> Query AppState (Maybe EWatch)
+findWatchEvent :: WatchName -> Query AppState (Maybe EWatch)
 findWatchEvent i = view (wTable . findWatch')
   where findWatch' = to $ findWatch i
 
-checkInWatchEvent :: POSIXTime -> ID -> Update AppState ()
+checkInWatchEvent :: POSIXTime -> WatchName -> Update AppState ()
 checkInWatchEvent t i = wTable %= (checkInWatch t i)
 
-pauseWatchEvent :: ID -> Update AppState ()
+pauseWatchEvent :: WatchName -> Update AppState ()
 pauseWatchEvent i = wTable %= (pauseWatch i)
 
-unPauseWatchEvent :: POSIXTime -> ID -> Update AppState ()
+unPauseWatchEvent :: POSIXTime -> WatchName -> Update AppState ()
 unPauseWatchEvent t i = wTable %= (unPauseWatch t i)
 
 sweepTableEvent :: POSIXTime -> Update AppState ()
@@ -209,7 +205,7 @@ sweepTableEvent t = wTable %= (sweepTable t)
 getNotifyingEvent :: Query AppState [EWatch]
 getNotifyingEvent = view (wTable . to getNotifying)
 
-completeNotifyingEvent :: [ID] -> Update AppState ()
+completeNotifyingEvent :: [WatchName] -> Update AppState ()
 completeNotifyingEvent is = wTable %= (completeNotifying is)
 
 mergeStaticWatchesEvent :: [NewWatch] -> Update AppState ()
@@ -240,33 +236,33 @@ createWatchS acid = update' acid . CreateWatchEvent
 
 deleteWatchS :: (UpdateEvent DeleteWatchEvent, MonadIO m)
                 => AcidState (EventState DeleteWatchEvent)
-                -> ID
+                -> WatchName
                 -> m ()
 deleteWatchS acid = update' acid . DeleteWatchEvent
 
 findWatchS :: (QueryEvent FindWatchEvent, MonadIO m)
               => AcidState (EventState FindWatchEvent)
-              -> ID
+              -> WatchName
               -> m (Maybe EWatch)
 findWatchS acid = query' acid . FindWatchEvent
 
 checkInWatchS :: (UpdateEvent CheckInWatchEvent, MonadIO m)
                 => AcidState (EventState CheckInWatchEvent)
                 -> POSIXTime
-                -> ID
+                -> WatchName
                 -> m ()
 checkInWatchS acid t = update' acid . CheckInWatchEvent t
 
 pauseWatchS :: (UpdateEvent PauseWatchEvent, MonadIO m)
                 => AcidState (EventState PauseWatchEvent)
-                -> ID
+                -> WatchName
                 -> m ()
 pauseWatchS acid = update' acid . PauseWatchEvent
 
 unPauseWatchS :: (UpdateEvent UnPauseWatchEvent, MonadIO m)
                 => AcidState (EventState UnPauseWatchEvent)
                 -> POSIXTime
-                -> ID
+                -> WatchName
                 -> m ()
 unPauseWatchS acid t = update' acid . UnPauseWatchEvent t
 
@@ -283,7 +279,7 @@ getNotifyingS acid = query' acid $ GetNotifyingEvent
 
 completeNotifyingS :: (UpdateEvent CompleteNotifyingEvent, MonadIO m)
                    => AcidState (EventState CompleteNotifyingEvent)
-                   -> [ID]
+                   -> [WatchName]
                    -> m ()
 completeNotifyingS acid = update' acid . CompleteNotifyingEvent
 

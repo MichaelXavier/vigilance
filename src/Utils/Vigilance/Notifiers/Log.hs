@@ -17,5 +17,5 @@ notify watches = renameLogCtx "Log Notifier" $ pushLogs formattedWatches
   where formattedWatches = map format watches
         format :: EWatch -> Text
         format w = mconcat [ "Watch "
-                           , w ^. watchName
+                           , w ^. watchName ^. unWatchName
                            , " failed to check in." ]
