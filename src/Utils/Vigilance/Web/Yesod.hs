@@ -4,9 +4,11 @@
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE NoImplicitPrelude         #-}
 module Utils.Vigilance.Web.Yesod ( runServer
                                  , WebApp(..) ) where
 
+import ClassyPrelude
 import Control.Applicative ( (<$>)
                            , (<*>)
                            , pure )
@@ -17,6 +19,7 @@ import Data.Acid (AcidState)
 import qualified Data.Acid as A
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Network.Wai.Handler.Warp (run)
+import Network.HTTP.Types.Status (noContent204)
 import Yesod
 
 import Utils.Vigilance.TableOps
@@ -34,7 +37,7 @@ instance Yesod WebApp where
   makeSessionBackend = const $ return Nothing
 
 mkYesod "WebApp" [parseRoutes|
-  /watches               WatchesR      GET POST
+  /watches                    WatchesR      GET POST
   /watches/#WatchName         WatchR        GET DELETE
   /watches/#WatchName/pause   PauseWatchR   POST
   /watches/#WatchName/unpause UnPauseWatchR POST
@@ -48,21 +51,25 @@ postWatchesR :: Handler Value
 postWatchesR = returnJson =<< bindM2 createWatchS getDb parseJsonBody_
 
 getWatchR :: WatchName -> Handler Value
-getWatchR =  returnJson <=< onWatch findWatchS
+getWatchR =  jsonOrNotFound <=< onWatch findWatchS
 
 deleteWatchR :: WatchName -> Handler Value
-deleteWatchR = returnJson <=< onWatch deleteWatchS
+deleteWatchR = (const noContent) <=< onWatch deleteWatchS
 
 postPauseWatchR :: WatchName -> Handler Value
-postPauseWatchR = returnJson <=< onWatch pauseWatchS
+postPauseWatchR = (const noContent) <=< onWatch pauseWatchS
 
 postUnPauseWatchR :: WatchName -> Handler Value
-postUnPauseWatchR = returnJson <=< bindM3 unPauseWatchS getDb getPOSIXTime' . return
+postUnPauseWatchR = (const noContent) <=< bindM3 unPauseWatchS getDb getPOSIXTime' . return
 
 postCheckInWatchR :: WatchName -> Handler Value
-postCheckInWatchR = returnJson <=< bindM3 checkInWatchS getDb getPOSIXTime' . return
+postCheckInWatchR = (const noContent) <=< bindM3 checkInWatchS getDb getPOSIXTime' . return
 
---TODO: configurable port
+--TODO: type
+noContent = sendResponseStatus noContent204 ()
+
+jsonOrNotFound = maybe notFound returnJson
+
 runServer :: WebApp -> IO ()
 runServer w = run port =<< toWaiApp w
   where port = w ^. cfg . configPort
