@@ -15,3 +15,6 @@ Issues
   closable queue?
 * waiting on fix in data-store for bug in S.map
 * responses from stuff like pause are wacky. they return empty arrays and stuff
+* test failure in completeNotifying
+* better use of lens. I'm using a lot of nasty hacks, using map/foldl when I'm
+  sure there's a combinator for it.

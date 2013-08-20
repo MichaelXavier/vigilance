@@ -43,7 +43,6 @@ popOrGetCfg q cfgChan = pop `orElse` getCfg
   where pop    = Left <$> readTChan q
         getCfg = Right <$> readTChan cfgChan
 
---TODO: actually use verbosity
 logMessages :: Logger -> Bool -> [LogMessage] -> IO ()
 logMessages logger verbose = loggerPutStr logger <=< addTime logger . map toLogStr . filter keep
   where keep (LogMessage _)        = True

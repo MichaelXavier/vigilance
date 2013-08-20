@@ -18,7 +18,6 @@ import Utils.Vigilance.Types
 import Utils.Vigilance.Utils ( WakeSig
                              , waitForWake )
 
---TODO: don't need CT anymore
 runWorker :: AcidState AppState -> TChan Config -> LogCtxT IO ()
 runWorker acid cfgChan = renameLogCtx "Watch Config Monitor" $ do
   pushLog "Waiting for new watches"

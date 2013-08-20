@@ -17,7 +17,8 @@ import Control.Monad ( (<=<)
                      , join )
 import Data.Acid (AcidState)
 import qualified Data.Acid as A
-import Data.Time.Clock.POSIX (getPOSIXTime)
+import Data.Time.Clock.POSIX ( getPOSIXTime
+                             , POSIXTime )
 import Network.Wai.Handler.Warp (run)
 import Network.HTTP.Types.Status (noContent204)
 import Yesod
@@ -54,29 +55,35 @@ getWatchR :: WatchName -> Handler Value
 getWatchR =  jsonOrNotFound <=< onWatch findWatchS
 
 deleteWatchR :: WatchName -> Handler Value
-deleteWatchR = (const noContent) <=< onWatch deleteWatchS
+deleteWatchR = alwaysNoContent <=< onWatch deleteWatchS
 
 postPauseWatchR :: WatchName -> Handler Value
-postPauseWatchR = (const noContent) <=< onWatch pauseWatchS
+postPauseWatchR = alwaysNoContent <=< onWatch pauseWatchS
 
 postUnPauseWatchR :: WatchName -> Handler Value
-postUnPauseWatchR = (const noContent) <=< bindM3 unPauseWatchS getDb getPOSIXTime' . return
+postUnPauseWatchR = alwaysNoContent <=< bindM3 unPauseWatchS getDb getPOSIXTime' . return
 
 postCheckInWatchR :: WatchName -> Handler Value
-postCheckInWatchR = (const noContent) <=< bindM3 checkInWatchS getDb getPOSIXTime' . return
+postCheckInWatchR = alwaysNoContent <=< bindM3 checkInWatchS getDb getPOSIXTime' . return
 
---TODO: type
+noContent :: Handler Value
 noContent = sendResponseStatus noContent204 ()
 
+alwaysNoContent :: a -> Handler Value
+alwaysNoContent = const noContent
+
+jsonOrNotFound :: ToJSON a => Maybe a -> Handler Value
 jsonOrNotFound = maybe notFound returnJson
 
 runServer :: WebApp -> IO ()
 runServer w = run port =<< toWaiApp w
   where port = w ^. cfg . configPort
 
+getDb :: HandlerT WebApp IO (AcidState AppState)
 getDb = view acid <$> getYesod --might be able to use `use`
 
--- TODO: handle Nothing with 404 
+onWatch :: ((AcidState AppState) -> i -> HandlerT WebApp IO b) -> i -> HandlerT WebApp IO b
 onWatch f i = join $ f <$> getDb <*> pure i
 
+getPOSIXTime' :: MonadIO m => m POSIXTime
 getPOSIXTime' = liftIO getPOSIXTime

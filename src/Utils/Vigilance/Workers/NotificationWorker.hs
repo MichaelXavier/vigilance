@@ -16,7 +16,6 @@ import Utils.Vigilance.Types
 sendNotifications :: [EWatch] -> [Notifier] -> LogCtxT IO ()
 sendNotifications ws = sequence_ . map ($ ws)
 
---TODO: sendNotifications should probably return a list of successfully sent watches so we can mark those notified
 runWorker :: AcidState AppState -> [Notifier] -> LogCtxT IO ()
 runWorker acid notifiers = renameLogCtx "Notifier Worker" $ do
                               watches <- getNotifyingS acid

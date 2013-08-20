@@ -107,9 +107,11 @@ instance ToJSON NotificationPreference where
   toJSON (EmailNotification a) = object [ "type"    .= String "email"
                                         , "address" .= String (a ^. unEmailAddress)]
 
+--TODO: other notifications
 instance FromJSON NotificationPreference where
-  parseJSON = withObject "EmailNotification" parseEmail --TODO: more
-    where parseEmail obj = EmailNotification <$> obj .: "address" --TODO: NOT CORRECt
+  parseJSON = parseEmailNotification
+    where parseEmailNotification = withObject "EmailNotification" parseEmail
+            where parseEmail obj = EmailNotification <$> obj .: "address"
 
 newtype POSIXWrapper = POSIXWrapper { unPOSIXWrapper :: POSIXTime }
 
@@ -162,7 +164,6 @@ newtype WatchName = WatchName { _unWatchName :: Text } deriving ( Show
 
 makeLenses ''WatchName
 
---TODO: notification backend
 data Watch i = Watch { _watchId            :: i
                      , _watchName          :: WatchName
                      , _watchInterval      :: WatchInterval
@@ -233,7 +234,6 @@ data LogCfg = LogCfg { _logCfgPath    :: FilePath
 
 makeClassy ''LogCfg
 
---TODO: http port
 data Config = Config { _configAcidPath  :: FilePath
                      , _configFromEmail :: Maybe EmailAddress
                      , _configPort      :: Int

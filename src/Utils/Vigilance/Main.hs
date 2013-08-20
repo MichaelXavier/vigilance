@@ -66,7 +66,6 @@ import qualified Utils.Vigilance.Workers.NotificationWorker as NW
 import qualified Utils.Vigilance.Workers.StaticWatchWorker as WW
 import qualified Utils.Vigilance.Workers.SweeperWorker as SW
 
---TODO: more sophisticated option parsing
 main :: IO ()
 main = do configPath <- (fmap unpack . listToMaybe) <$> getArgs
           maybe noConfig runWithConfigPath configPath
@@ -80,7 +79,7 @@ runInMainLogCtx rCfg logChan = do let ctx = LogCtx "Main" logChan
 runWithConfig :: CT.Config -> LogCtxT IO ()
 runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         logCtx    <- ask
-                        logChan   <- asks (view ctxChan) --TODO: rewrite others
+                        logChan   <- asks (view ctxChan)
 
                         (configChanW, configChanR, configChanR') <- lift $ atomically $ do w  <- newBroadcastTChan
                                                                                            r  <- dupTChan w

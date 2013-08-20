@@ -115,7 +115,7 @@ deleteWatch n = S.delete (sWatchName .== n)
 findWatch :: WatchName -> WatchTable -> Maybe EWatch
 findWatch n = listToMaybe . map ewatch . S.lookup (sWatchName .== n)
 
---TODO: type
+watchLens :: (NewWatch -> NewWatch) -> WatchName -> WatchTable -> WatchTable
 watchLens f n table = table & with (sWatchName .== n) %~ (over mapped f)
 
 checkInWatch :: POSIXTime -> WatchName -> WatchTable -> WatchTable
@@ -147,9 +147,6 @@ getNotifying :: WatchTable -> [EWatch]
 getNotifying = map ewatch . S.lookup (sWatchWState .== Notifying)
 
 
---TODO: also scope by state
--- hack, see https://github.com/ekmett/tables/issues/6
--- so not performant
 completeNotifying :: [WatchName] -> WatchTable -> WatchTable
 completeNotifying [] table  = table
 completeNotifying names table = SS.update' (Just . updateState) scope table
