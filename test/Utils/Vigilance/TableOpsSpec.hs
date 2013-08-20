@@ -97,11 +97,12 @@ spec = parallel $ do
       in result `shouldBe` expectedResult
 
   -- dog slow
+  --TODO: pretty sure there's a better way to restrict length than take
   describe "completeNotifying" $ do
     prop "it does nothing when given bogus ids" $ \(UniqueWatches watches) names ->
       let watches'   = take 10 watches
           table      = fromList watches' :: WatchTable
-          bogusNames = (map _watchName watches') \\ names
+          bogusNames = (nub names) \\ (map _watchName watches')
           table'     = completeNotifying bogusNames table :: WatchTable
       in table' `equalsTable` table
 
