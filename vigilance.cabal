@@ -18,8 +18,6 @@ cabal-version:       >=1.10
 executable vigilance
   hs-source-dirs:     src,test
   main-is: Utils/Vigilance/Main.hs
-  -- other-modules:       
-  -- other-extensions:    
   build-depends:       base >=4.6 && <4.7,
                        async == 2.*,
                        aeson >=0.6 && <1.0,
@@ -52,7 +50,7 @@ executable vigilance
                        yesod-platform >= 1.2.3 && < 2.0
   -- hs-source-dirs:      
   default-language:    Haskell2010
-  ghc-options: -threaded -O3 -rtsopts
+  ghc-options: -threaded -O3 -rtsopts -Werror
 
 Test-Suite test-vigilance
   default-language:    Haskell2010

@@ -73,7 +73,6 @@ watchesWithEmails :: EWatch -> [(EmailAddress, [EWatch])]
 watchesWithEmails w = zip emails (repeat [w] :: [[EWatch]])
   where emails = catMaybes $ map extractEmail $ w ^. watchNotifications
         extractEmail (EmailNotification e) = Just e
-        extractEmail _                     = Nothing
 
 e2a :: EmailAddress -> Address
 e2a = Address Nothing . view unEmailAddress
