@@ -4,14 +4,13 @@ module Utils.Vigilance.Sweeper ( expired
 import Control.Lens
 
 import Data.Time.Clock.POSIX (POSIXTime)
-import Debug.Trace
 
 import Utils.Vigilance.Types
 
 
 expired :: POSIXTime -> Watch i -> Bool
-expired now w@Watch { _watchWState = Active last } = beyondCutoff
-  where cutoff       = last + interval
+expired now w@Watch { _watchWState = Active lst } = beyondCutoff
+  where cutoff       = lst + interval
         beyondCutoff = now > cutoff
         interval     = fromInteger $ secondsInterval (w ^. watchInterval)
 expired _ _                                        = False

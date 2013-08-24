@@ -9,8 +9,7 @@ module Utils.Vigilance.Notifiers.Email ( notify
                                        , Address(..)) where
 
 import ClassyPrelude
-import Control.Lens
-import Control.Monad.Trans (lift)
+import Control.Lens hiding (from)
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Map.Lazy as M
 import Text.InterpolatedString.Perl6 (qc)
@@ -45,9 +44,6 @@ generateEmails watches ctx = M.elems $ M.mapWithKey createMail groupedByEmail --
                                                 , mailHeaders = [("Subject", subject)]
                                                 , mailParts   = [[mailPart ws]] }
           where subject = [qc|Vigilence notification {watchCount} activated|] :: Text
-                count
-                  | watchCount > 1 = [qc|{watchCount} watches|] :: Text
-                  | otherwise      = [qc|{watchCount} watch|] :: Text
                 watchCount = length ws
         from :: Address
         from = ctx ^. fromEmail . to e2a

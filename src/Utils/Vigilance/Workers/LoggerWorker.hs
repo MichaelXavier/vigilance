@@ -8,11 +8,9 @@ import Control.Concurrent.STM (orElse, atomically, STM)
 import Control.Concurrent.STM.TChan ( readTChan
                                     , TChan )
 import Control.Lens
-import Control.Monad ( forever
-                     , (<=<) )
-import System.IO (openFile
-                 , withFile
-                 , IOMode(AppendMode))
+import Control.Monad ( (<=<) )
+import System.IO ( openFile
+                 , IOMode(AppendMode) )
 import System.Log.FastLogger ( Logger
                              , LogStr(..)
                              , mkLogger
@@ -26,9 +24,9 @@ import Utils.Vigilance.Types
 -- lift into the either monad?
 -- liftM Foo (takeTMVar fooTMVar) `orElse` liftM Bar (readTChan barTChan) 
 runWorker :: LogChan -> Config -> TChan Config -> IO ()
-runWorker q Config { _configLogCfg = logCfg } cfgChan = do
-  logger <- openLogger $ logCfg ^. logCfgPath
-  logOrReconfigure logger q cfgChan $ logCfg ^. logCfgVerbose
+runWorker q Config { _configLogCfg = cfg } cfgChan = do
+  logger <- openLogger $ cfg ^. logCfgPath
+  logOrReconfigure logger q cfgChan $ cfg ^. logCfgVerbose
 
 logOrReconfigure :: Logger -> LogChan -> TChan Config -> Bool -> IO ()
 logOrReconfigure logger q cfgChan verbose = do

@@ -1,8 +1,10 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE NoImplicitPrelude  #-}
-{-# LANGUAGE FlexibleContexts   #-}
-{-# LANGUAGE TemplateHaskell    #-}
-{-# LANGUAGE TypeFamilies       #-}
+{-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE NoImplicitPrelude    #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Utils.Vigilance.TableOps ( allWatches
                                 , allWatchesEvent
                                 , AllWatchesEvent(..)
@@ -59,15 +61,10 @@ module Utils.Vigilance.TableOps ( allWatches
 
 import ClassyPrelude hiding (fromList)
 import Control.Lens
-import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Reader (ask)
-import Control.Monad.State ( get
-                           , put)
 import Data.Acid
 import Data.Acid.Advanced (update', query')
 import Data.List (foldl')
 import Data.Store.Lens (with)
-import Debug.Trace
 import           Data.Store ((.==), (:.)(..), (.&&))
 import qualified Data.Store as S
 import qualified Data.Store.Storable as SS
@@ -97,11 +94,11 @@ allWatches = map ewatch . S.toList
 
 -- Helpers
 
+getId :: (ID :. t1) -> ID
 getId (wid :. _) = wid
 
+ewatch :: (ID :. i, NewWatch) -> EWatch
 ewatch (k, w) = w & watchId .~ getId k -- stateful?
-
-newwatch w = w & watchId .~ ()
 
 -- API
 
@@ -158,7 +155,7 @@ completeNotifying names table = SS.update' (Just . updateState) scope table
 mergeStaticWatches :: [NewWatch] -> WatchTable -> WatchTable
 mergeStaticWatches watches table = foldl' mergeWatchIn table watches
   where mergeWatchIn table' staticW = case tryInsert of
-                                        Just (x, table'') -> table''
+                                        Just (_, table'') -> table''
                                         Nothing           -> forceUpdate
           where forceUpdate = SS.update' (Just . mergeWatch)
                                          (sWatchName .== (staticW ^. watchName))

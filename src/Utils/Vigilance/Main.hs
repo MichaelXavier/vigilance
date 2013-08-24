@@ -6,7 +6,6 @@ module Main (main) where
 
 import ClassyPrelude hiding ( FilePath
                             , fromList )
-import Control.Applicative ((<$>))
 import Control.Concurrent (forkIO)
 import Control.Concurrent.Async ( waitAnyCatchCancel
                                 , cancel
@@ -18,13 +17,8 @@ import Control.Concurrent.STM ( atomically
                               , writeTChan
                               , dupTChan )
 import Control.Lens
-import Control.Monad ( (<=<)
-                     , void )
-import Control.Monad.Reader ( runReaderT
-                            , ask
-                            , asks)
-import Control.Monad.Trans (lift)
-import qualified Data.ByteString.Lazy as LBS
+import Control.Monad.Reader ( ask
+                            , asks )
 import Data.Acid ( AcidState
                  , openLocalStateFrom
                  , createCheckpoint
@@ -73,13 +67,14 @@ main = do configPath <- (fmap unpack . listToMaybe) <$> getArgs
 runWithConfigPath :: FilePath -> IO ()
 runWithConfigPath path = bindM2 runInMainLogCtx (loadRawConfig path) createLogChan
 
+runInMainLogCtx :: CT.Config -> TChan [LogMessage] -> IO ()
 runInMainLogCtx rCfg logChan = do let ctx = LogCtx "Main" logChan
                                   runInLogCtx ctx $ runWithConfig rCfg
 
 runWithConfig :: CT.Config -> LogCtxT IO ()
-runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
-                        logCtx    <- ask
-                        logChan   <- asks (view ctxChan)
+runWithConfig rCfg = do cfg     <- lift $ convertConfig rCfg
+                        lCtx    <- ask
+                        logChan <- asks (view ctxChan)
 
                         (configChanW, configChanR, configChanR') <- lift $ atomically $ do w  <- newBroadcastTChan
                                                                                            r  <- dupTChan w
@@ -90,15 +85,14 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         acid      <- lift $ openLocalStateFrom (cfg ^. configAcidPath) (AppState $ initialState cfg)
                         quitSig   <- lift $ (newWakeSig :: IO (WakeSig ExitCode))
 
-                        let sweeperH       = errorLogger "Sweeper" logCtx
-                        let notifierH      = errorLogger "Notifier" logCtx
-                        let loggerH        = errorLogger "Logger" logCtx
-                        let staticH        = errorLogger "Config Reload" logCtx
-                        let sweeperWorker  = runInLogCtx logCtx $ SW.runWorker acid
-                        let notifierWorker = runInLogCtx logCtx $ NW.runWorker acid notifiers
-                        let logCfg         = cfg ^. configLogCfg
+                        let sweeperH       = errorLogger "Sweeper" lCtx
+                        let notifierH      = errorLogger "Notifier" lCtx
+                        let loggerH        = errorLogger "Logger" lCtx
+                        let staticH        = errorLogger "Config Reload" lCtx
+                        let sweeperWorker  = runInLogCtx lCtx $ SW.runWorker acid
+                        let notifierWorker = runInLogCtx lCtx $ NW.runWorker acid notifiers
                         let loggerWorker   = LW.runWorker logChan cfg configChanR
-                        let watchWorker    = runInLogCtx logCtx $ WW.runWorker acid configChanR'
+                        let watchWorker    = runInLogCtx lCtx $ WW.runWorker acid configChanR'
                         let webApp         = WebApp acid cfg logChan
 
                         vLog "Starting logger" -- TIME PARADOX
@@ -130,13 +124,13 @@ runWithConfig rCfg = do cfg       <- lift $ convertConfig rCfg
                         vLog "configuring signal handlers"
 
                         lift $ do
-                          installHandler sigHUP  (Catch $ broadcastCfgReload rCfg configChanW) Nothing
-                          installHandler sigINT  (Catch $ wakeUp quitSig ExitSuccess) Nothing
-                          installHandler sigTERM (Catch $ wakeUp quitSig ExitSuccess) Nothing
+                          void $ installHandler sigHUP  (Catch $ broadcastCfgReload rCfg configChanW) Nothing
+                          void $ installHandler sigINT  (Catch $ wakeUp quitSig ExitSuccess) Nothing
+                          void $ installHandler sigTERM (Catch $ wakeUp quitSig ExitSuccess) Nothing
 
                         vLog "waiting for any process to fail"
 
-                        lift . forkIO $ do
+                        void . lift . forkIO $ do
                           print . snd =<< waitAnyCatchCancel (logger:workers)
                           wakeUp quitSig (ExitFailure 1)
 

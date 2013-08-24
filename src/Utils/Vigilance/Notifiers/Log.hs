@@ -4,8 +4,6 @@ module Utils.Vigilance.Notifiers.Log ( notify ) where
 
 import ClassyPrelude
 import Control.Lens
-import Data.Monoid (mconcat)
-import Data.Text (Text)
 
 import Utils.Vigilance.Logger
 import Utils.Vigilance.Types

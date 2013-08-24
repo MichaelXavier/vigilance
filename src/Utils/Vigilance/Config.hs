@@ -7,16 +7,11 @@ module Utils.Vigilance.Config ( configNotifiers
                               , loadConfig) where
 
 import ClassyPrelude hiding (FilePath)
-import Control.Applicative ( (<$>)
-                           , (<*>) )
-import Control.Monad -- ((<=<))
-import Control.Monad.Reader (ask)
+import Control.Monad ((<=<))
 import Control.Lens
 import qualified Data.Configurator as C
 import qualified Data.Configurator.Types as CT
 import qualified Data.HashMap.Strict as HM
-import Data.HashMap.Strict (HashMap)
-import Data.Maybe (catMaybes)
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX ( POSIXTime
                              , getPOSIXTime )
@@ -85,6 +80,7 @@ buildWatch time wName attrs = Watch <$> pure ()
 
 parseNotifications :: CT.Value -> [NotificationPreference]
 parseNotifications (CT.List vs) = catMaybes $ map parseNotification vs
+parseNotifications _            = []
 
 parseNotification :: CT.Value -> Maybe NotificationPreference
 parseNotification (CT.List [CT.String "email", CT.String a]) = Just . EmailNotification . EmailAddress $ a

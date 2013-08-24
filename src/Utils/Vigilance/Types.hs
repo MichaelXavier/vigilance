@@ -13,29 +13,23 @@ module Utils.Vigilance.Types where
 
 import Prelude (FilePath)
 import ClassyPrelude hiding (FilePath)
-import Control.Applicative ( (<$>)
-                           , (<*>)
-                           , pure)
 import Control.Concurrent.STM.TChan (TChan)
 import Control.Monad.Reader (ReaderT)
 import Control.Lens hiding ((.=))
-import Control.Lens.TH
 import Data.Aeson
 import qualified Data.Attoparsec.Number as N
-import Data.Monoid
 import Data.SafeCopy ( base
                      , SafeCopy
                      , deriveSafeCopy)
-import           Data.Store (M, O, (.:.), (:.), (.<), (.<=), (.>), (.>=), (./=), (.==), (.&&), (.||), Store)
+import           Data.Store ( M
+                            , O
+                            , (:.)
+                            , Store )
 import qualified Data.Store as S
 import           Data.Store.Storable (Storable(..))
-import Data.String (IsString)
 import Data.Time.Clock.POSIX (POSIXTime)
-import Data.Text (Text)
-import Data.Typeable (Typeable)
 import qualified Data.Vector as V
-import System.Log.FastLogger ( LogStr
-                             , ToLogStr(..) )
+import System.Log.FastLogger ( ToLogStr(..) )
 import Yesod.Core.Dispatch (PathPiece)
 
 newtype ID = ID { _unID :: Int } deriving ( Show
@@ -250,7 +244,7 @@ instance Monoid Config where
                                                                    (nonDefault defaultPort pa pb)
                                                                    (nonDefault defaultLogCfg la lb)
                                                                    (mappend wa wb)
-    where chooseJust a@(Just _) b = a
+    where chooseJust a@(Just _) _ = a
           chooseJust _ b          = b
           nonDefault defValue a b
             | a == defValue = b

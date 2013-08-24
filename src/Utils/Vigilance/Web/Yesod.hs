@@ -5,18 +5,15 @@
 {-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE NoImplicitPrelude         #-}
+-- thanks, yesod :(
+{-# OPTIONS_GHC -fno-warn-unused-binds #-}
 module Utils.Vigilance.Web.Yesod ( runServer
                                  , WebApp(..) ) where
 
 import ClassyPrelude
-import Control.Applicative ( (<$>)
-                           , (<*>)
-                           , pure )
 import Control.Lens
-import Control.Monad ( (<=<)
-                     , join )
+import Control.Monad ( (<=<) )
 import Data.Acid (AcidState)
-import qualified Data.Acid as A
 import Data.Time.Clock.POSIX ( getPOSIXTime
                              , POSIXTime )
 import Network.Wai.Handler.Warp (run)

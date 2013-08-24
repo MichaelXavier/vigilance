@@ -4,13 +4,13 @@ module Utils.Vigilance.Logger ( createLogChan
                               , renameLogCtx
                               , pushLog
                               , vLog
+                              , vLogs
                               , pushLogs ) where
 
 import Control.Concurrent.STM (atomically)
 import Control.Concurrent.STM.TChan ( writeTChan
                                     , newTChan )
 import Control.Lens
-import Control.Monad (when)
 import Control.Monad.Reader ( runReaderT
                             , asks
                             , withReaderT )
@@ -18,7 +18,6 @@ import Control.Monad.Trans (lift)
 import Data.Monoid ( Monoid
                    , mconcat)
 import Data.Text (Text)
-import System.Log.FastLogger ( ToLogStr(..) ) --todo: reexport from types
 
 import Utils.Vigilance.Types
 

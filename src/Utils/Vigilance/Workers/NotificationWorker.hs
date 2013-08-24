@@ -3,9 +3,6 @@
 module Utils.Vigilance.Workers.NotificationWorker (runWorker) where
 
 import ClassyPrelude
-import Control.Monad ( sequence
-                     , when )
-import Control.Monad.Trans (lift)
 import Control.Lens
 import Data.Acid (AcidState)
 
