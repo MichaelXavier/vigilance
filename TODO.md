@@ -16,3 +16,5 @@ Issues
 * waiting on fix in data-store for bug in S.map
 * better use of lens. I'm using a lot of nasty hacks, using map/foldl when I'm
   sure there's a combinator for it.
+* turn on Wall
+* add a binary for modifying 
