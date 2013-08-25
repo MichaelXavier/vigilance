@@ -15,8 +15,8 @@ build-type:          Simple
 -- extra-source-files:  
 cabal-version:       >=1.10
 
-executable vigilance
-  hs-source-dirs:     src,test
+executable vigilance-server
+  hs-source-dirs:     src
   main-is: Utils/Vigilance/Main.hs
   build-depends:       base >=4.6 && <4.7,
                        async == 2.*,
@@ -29,6 +29,7 @@ executable vigilance
                        containers,
                        data-store >= 0.3.0.2 && <1.0,
                        either == 3.4.1,
+                       entropy >= 0.2.2.2,
                        errors >= 1.4.2 && <2.0,
                        fast-logger >= 0.3.2 && < 1.0,
                        http-types,
@@ -52,6 +53,45 @@ executable vigilance
   default-language:    Haskell2010
   ghc-options: -threaded -O3 -rtsopts -Wall -Werror
 
+executable vigilance
+  hs-source-dirs:     src
+  main-is: Utils/Vigilance/Client/Main.hs
+  build-depends:       base >=4.6 && <4.7,
+                       async == 2.*,
+                       aeson >=0.6 && <1.0,
+                       attoparsec,
+                       bytestring,
+                       acid-state,
+                       classy-prelude >=0.5.8 && <1.0,
+                       configurator >=0.2 && <1.0,
+                       containers,
+                       data-store >= 0.3.0.2 && <1.0,
+                       either == 3.4.1,
+                       entropy >= 0.2.2.2,
+                       errors >= 1.4.2 && <2.0,
+                       fast-logger >= 0.3.2 && < 1.0,
+                       http-streams >= 0.6.0.2 && <= 1.0,
+                       http-types,
+                       interpolatedstring-perl6 >=0.9.0 && <1.0,
+                       lens >=3.9 && < 4.0,
+                       mime-mail >= 0.4.2 && <1.0,
+                       mtl,
+                       optparse-applicative >= 0.5.2.1 && < 1.0,
+                       safecopy,
+                       stm >=2.4.2 && <3.0,
+                       time,
+                       text,
+                       transformers,
+                       unix >=2.6.0.1 && <3.0,
+                       unordered-containers,
+                       vector,
+                       warp,
+                       yesod,
+                       yesod-core,
+                       yesod-platform >= 1.2.3 && < 2.0
+  default-language:    Haskell2010
+  ghc-options: -threaded -O3 -rtsopts
+
 Test-Suite test-vigilance
   default-language:    Haskell2010
   Type: exitcode-stdio-1.0
@@ -68,6 +108,7 @@ Test-Suite test-vigilance
                        configurator >=0.2 && <1.0,
                        containers,
                        data-store >= 0.3.0.2 && <1.0,
+                       entropy >= 0.2.2.2,
                        errors >= 1.4.2 && <2.0,
                        fast-logger >= 0.3.2 && < 1.0,
                        http-types,
