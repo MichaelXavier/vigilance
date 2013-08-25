@@ -1,7 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 module Utils.Vigilance.Client.Client ( getList
+                                     , getInfo
+                                     , pause
+                                     , unPause
+                                     , checkIn
                                      , displayList
+                                     , displayWatch
                                      , VError(..) ) where
 
 import ClassyPrelude
@@ -28,11 +33,30 @@ displayList = putStrLn . renderList
 --TODO: better rendering
 renderList :: [EWatch] -> Text
 renderList = unlines . map renderWatch
-  where renderWatch = show
+
+displayWatch :: EWatch -> IO ()
+displayWatch = putStrLn . renderWatch
+
+renderWatch :: EWatch -> Text
+renderWatch = show
 
 getList :: ClientCtxT IO (VigilanceResponse [EWatch])
 getList = makeRequest GET "/watches" emptyBody
 
+getInfo :: WatchName -> ClientCtxT IO (VigilanceResponse EWatch)
+getInfo n = makeRequest GET (watchRoute n) emptyBody
+
+pause :: WatchName -> ClientCtxT IO (VigilanceResponse ())
+pause n = makeRequest POST (watchRoute n <> "/pause") emptyBody
+
+unPause :: WatchName -> ClientCtxT IO (VigilanceResponse ())
+unPause n = makeRequest POST (watchRoute n <> "/unpause") emptyBody
+
+checkIn :: WatchName -> ClientCtxT IO (VigilanceResponse ())
+checkIn n = makeRequest POST (watchRoute n <> "/checkin") emptyBody
+
+watchRoute :: WatchName -> ByteString
+watchRoute (WatchName n) = "/watches/" <> encodeUtf8 n
 
 makeRequest :: FromJSON a
             => Method

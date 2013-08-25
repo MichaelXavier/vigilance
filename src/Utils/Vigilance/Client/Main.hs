@@ -10,6 +10,7 @@ import Control.Monad.Trans.Reader (runReaderT)
 import Options.Applicative
 import Options.Applicative.Builder.Internal ( CommandFields
                                             , Mod )
+import System.Exit (exitFailure)
 
 import Utils.Vigilance.Client.Client
 import Utils.Vigilance.Client.Config
@@ -22,12 +23,23 @@ runOptions :: Options -> IO ()
 runOptions Options {..} = runReaderT (runCommand optCommand) =<< readClientConfig configPath
 
 runCommand :: Command -> ClientCtxT IO ()
-runCommand List = either displayError (lift . displayList) =<< getList
-runCommand _ = undefined
+runCommand List        = withErrorHandling displayList getList
+runCommand (Pause n)   = withErrorHandling doNothing $ pause n
+runCommand (UnPause n) = withErrorHandling doNothing $ unPause n
+runCommand (CheckIn n) = withErrorHandling doNothing $ checkIn n
+runCommand (Info n)    = withErrorHandling displayWatch $ getInfo n
+
+doNothing :: a -> IO ()
+doNothing = const $ return ()
+
+withErrorHandling display action = either (lift . displayError) (lift . display) =<< action
 
 --TODO: better error reporting
-displayError :: VError -> ClientCtxT IO ()
-displayError = lift . print
+displayError :: VError -> IO ()
+displayError e = putStrLn (message e) >> exitFailure
+  where message NotFound           = "Watch not found"
+        message (ParseError msg)   = "Parse error: " <> msg
+        message (StatusError code) = "Server returned error status: " <> show code
 
 opts :: ParserInfo Options
 opts = info (helper <*> optionsParser) banner
