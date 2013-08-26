@@ -8,6 +8,7 @@ module SpecHelper ( module Utils.Vigilance.Types
                   , (<$>)
                   , (<*>)
                   , pure
+                  , qc
                   , POSIXTime
                   , baseWatch
                   , baseNewWatch
@@ -43,6 +44,7 @@ import Test.Hspec.QuickCheck
 import Test.QuickCheck
 import Test.QuickCheck.Property.Common
 import Test.QuickCheck.Property.Monoid
+import Text.InterpolatedString.Perl6 (qc)
 import Utils.Vigilance.Types
 
 

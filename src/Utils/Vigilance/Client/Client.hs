@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE QuasiQuotes       #-}
+{-# LANGUAGE RecordWildCards   #-}
 module Utils.Vigilance.Client.Client ( getList
                                      , getInfo
                                      , pause
@@ -7,9 +9,15 @@ module Utils.Vigilance.Client.Client ( getList
                                      , checkIn
                                      , displayList
                                      , displayWatch
+                                     , displayWatchInfo
+                                     -- for testing
+                                     , renderList
+                                     , renderWatch
+                                     , renderWatchInfo
                                      , VError(..) ) where
 
 import ClassyPrelude
+import Control.Lens
 import Control.Monad ((<=<))
 import Control.Monad.Trans.Reader (asks)
 import Data.Aeson ( FromJSON
@@ -22,6 +30,7 @@ import Data.Ix (inRange)
 import Network.Http.Client
 import System.IO.Streams.Attoparsec (parseFromStream)
 import qualified System.IO.Streams as S
+import Text.InterpolatedString.Perl6 (qc)
 
 import Utils.Vigilance.Client.Config
 import Utils.Vigilance.Types
@@ -30,15 +39,42 @@ import Utils.Vigilance.Types
 displayList :: [EWatch] -> IO ()
 displayList = putStrLn . renderList
 
---TODO: better rendering
 renderList :: [EWatch] -> Text
-renderList = unlines . map renderWatch
+renderList = unlines' . map renderWatch
 
 displayWatch :: EWatch -> IO ()
 displayWatch = putStrLn . renderWatch
 
 renderWatch :: EWatch -> Text
-renderWatch = show
+renderWatch w = [qc|{name} ({i}) - {interval} - {state}|]
+  where name     = w ^. watchName . unWatchName
+        i        = w ^. watchId . unID
+        interval = w ^. watchInterval
+        state    = w ^. watchWState . to renderState
+
+displayWatchInfo :: EWatch -> IO ()
+displayWatchInfo = putStrLn . renderWatchInfo
+
+renderWatchInfo :: EWatch -> Text
+renderWatchInfo w = [qc|{renderedWatch}
+
+Notifications:
+{renderedNotifications}|]
+  where renderedWatch = renderWatch w
+        notifications = w ^. watchNotifications
+        renderedNotifications
+          | null notifications = bullet "none"
+          | otherwise          = unlines' . map (bullet . renderNotification) $ notifications
+
+renderNotification :: NotificationPreference -> Text
+renderNotification (EmailNotification (EmailAddress a)) = [qc|Email: {a}|]
+
+renderState :: WatchState -> Text
+renderState (Active t) = [qc|Active {t}|]
+renderState x          = show x
+
+bullet :: Text -> Text
+bullet x = [qc| - {x}|]
 
 getList :: ClientCtxT IO (VigilanceResponse [EWatch])
 getList = makeRequest GET "/watches" emptyBody
@@ -109,3 +145,6 @@ type VigilanceResponse a = Either VError a
 coerceParsed :: Result a -> VigilanceResponse a
 coerceParsed (Success a) = Right a
 coerceParsed (Error e)   = Left $ ParseError $ pack e
+
+unlines' :: [Text] -> Text
+unlines' = intercalate "\n"
