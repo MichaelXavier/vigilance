@@ -63,8 +63,10 @@ postUnPauseWatchR = alwaysNoContent <=< bindM3 unPauseWatchS getDb getPOSIXTime'
 postCheckInWatchR :: WatchName -> Handler Value
 postCheckInWatchR = alwaysNoContent <=< bindM3 checkInWatchS getDb getPOSIXTime' . return
 
+-- Must explicitly add Content-Length of 0 because http-streams hangs on an
+-- HTTP 1.1 response with 204 and no explicit content length.
 noContent :: Handler Value
-noContent = sendResponseStatus noContent204 ()
+noContent = addHeader "Content-Length" "0" >> sendResponseStatus noContent204 ()
 
 alwaysNoContent :: a -> Handler Value
 alwaysNoContent = const noContent
