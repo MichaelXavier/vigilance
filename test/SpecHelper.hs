@@ -4,8 +4,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module SpecHelper ( module Utils.Vigilance.Types
-                  , (<$>)
+module SpecHelper ( (<$>)
                   , (<*>)
                   , pure
                   , qc
@@ -16,36 +15,31 @@ module SpecHelper ( module Utils.Vigilance.Types
                   , NonEmptyList(..)
                   , Text
                   , UniqueWatches(..)
-                  , module Network.Mail.Mime
-                  , module Control.Lens
-                  , module Data.Monoid
-                  , module Test.Hspec
-                  , module Test.Hspec.Expectations
-                  , module Test.Hspec.QuickCheck
-                  , module Test.QuickCheck.Property.Common
-                  , module Test.QuickCheck.Property.Monoid) where
+                  , module X) where
 
 import Control.Applicative ( (<$>)
                            , (<*>)
                            , pure)
-import Control.Lens hiding (elements)
 import Data.DeriveTH
 import Data.Derive.Arbitrary (makeArbitrary)
 import Data.List (nubBy)
-import Data.Monoid
 import qualified Data.Set as S
 import Data.Text ( Text
                  , pack)
 import Data.Time.Clock.POSIX (POSIXTime)
-import Network.Mail.Mime
-import Test.Hspec
-import Test.Hspec.Expectations
-import Test.Hspec.QuickCheck
-import Test.QuickCheck
-import Test.QuickCheck.Property.Common
-import Test.QuickCheck.Property.Monoid
+
+import Control.Lens as X hiding (elements)
+import Data.Monoid as X
+import Network.Mail.Mime as X
+import Test.Hspec as X
+import Test.Hspec.Expectations as X
+import Test.Hspec.QuickCheck as X
 import Text.InterpolatedString.Perl6 (qc)
-import Utils.Vigilance.Types
+import Test.QuickCheck
+import Test.QuickCheck.Property.Common as X
+import Test.QuickCheck.Property.Monoid as X
+import Utils.Vigilance.Types as X
+
 
 
 baseWatch :: EWatch

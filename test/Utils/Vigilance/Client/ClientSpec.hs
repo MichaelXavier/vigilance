@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
-module Utils.Vigilance.ConfigSpec (spec) where
+module Utils.Vigilance.Client.ClientSpec (spec) where
 
 import ClassyPrelude
 import SpecHelper

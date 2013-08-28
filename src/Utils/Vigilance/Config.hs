@@ -26,7 +26,7 @@ configNotifiers cfg = catMaybes [logNotifier, emailNotifier]
         emailNotifier = E.notify . E.EmailContext <$> cfg ^. configFromEmail
 
 loadRawConfig :: FilePath -> IO CT.Config
-loadRawConfig = C.load . return . CT.Required
+loadRawConfig = C.load . pure . CT.Required
 
 loadConfig :: FilePath -> IO Config
 loadConfig = convertConfig <=< loadRawConfig
@@ -35,7 +35,7 @@ loadConfig = convertConfig <=< loadRawConfig
 convertConfig :: CT.Config -> IO Config
 convertConfig cfg = mempty <> Config <$> lud defaultAcidPath "vigilance.acid_path"
                                      <*> (toEmailAddress <$> lu "vigilance.from_email")
-                                     <*> (lud defaultPort "vigilance.port")
+                                     <*> lud defaultPort "vigilance.port"
                                      <*> parseLogCfg
                                      <*> (parseWatches <$> getPOSIXTime <*> C.getMap cfg)
   where lu             = C.lookup cfg
@@ -79,7 +79,7 @@ buildWatch time wName attrs = Watch <$> pure ()
         noNotifications = CT.List []
 
 parseNotifications :: CT.Value -> [NotificationPreference]
-parseNotifications (CT.List vs) = catMaybes $ map parseNotification vs
+parseNotifications (CT.List vs) = mapMaybe parseNotification vs
 parseNotifications _            = []
 
 parseNotification :: CT.Value -> Maybe NotificationPreference

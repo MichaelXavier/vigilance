@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
@@ -49,7 +48,6 @@ import Utils.Vigilance.TableOps (fromList)
 import Utils.Vigilance.Types
 import Utils.Vigilance.Utils ( bindM2
                              , newWakeSig
-                             , WakeSig
                              , waitForWake
                              , wakeUp )
 import Utils.Vigilance.Worker ( workForeverWithDelayed
@@ -83,7 +81,7 @@ runWithConfig rCfg = do cfg     <- lift $ convertConfig rCfg
 
                         let notifiers = configNotifiers cfg
                         acid      <- lift $ openLocalStateFrom (cfg ^. configAcidPath) (AppState $ initialState cfg)
-                        quitSig   <- lift $ (newWakeSig :: IO (WakeSig ExitCode))
+                        quitSig   <- lift newWakeSig
 
                         let sweeperH       = errorLogger "Sweeper" lCtx
                         let notifierH      = errorLogger "Notifier" lCtx

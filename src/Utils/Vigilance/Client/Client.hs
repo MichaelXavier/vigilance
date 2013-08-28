@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE QuasiQuotes       #-}
-{-# LANGUAGE RecordWildCards   #-}
 module Utils.Vigilance.Client.Client ( getList
                                      , getInfo
                                      , pause
@@ -83,7 +82,7 @@ getInfo :: WatchName -> ClientCtxT IO (VigilanceResponse EWatch)
 getInfo n = makeRequest GET (watchRoute n) emptyBody
 
 pause :: WatchName -> ClientCtxT IO (VigilanceResponse ())
-pause n = makeRequest_ POST (watchRoute n <> "/pause") emptyBody
+pause n = makeRequest POST (watchRoute n <> "/pause") emptyBody
 
 unPause :: WatchName -> ClientCtxT IO (VigilanceResponse ())
 unPause n = makeRequest POST (watchRoute n <> "/unpause") emptyBody
@@ -94,40 +93,21 @@ checkIn n = makeRequest POST (watchRoute n <> "/checkin") emptyBody
 watchRoute :: WatchName -> ByteString
 watchRoute (WatchName n) = "/watches/" <> encodeUtf8 n
 
--- Workaround because touching the response body on a 204 hangs forever
--- currently with http-streams
-makeRequest_ :: Method
-                -> ByteString
-                -> (S.OutputStream Builder -> IO b)
-                -> ClientCtxT IO (VigilanceResponse ())
-makeRequest_ = makeRequest' ignoreResponse
-  where ignoreResponse _ = return . Right $ ()
-
 makeRequest :: FromJSON a
                => Method
                -> ByteString
                -> (S.OutputStream Builder -> IO b)
                -> ClientCtxT IO (VigilanceResponse a)
-makeRequest = makeRequest' responseHandler
-  where responseHandler c = receiveResponse c jsonResponseHandler
-
-makeRequest' :: FromJSON a
-                => (Connection -> IO (VigilanceResponse a))
-                -> Method
-                -> ByteString
-                -> (S.OutputStream Builder -> IO b)
-                -> ClientCtxT IO (VigilanceResponse a)
-makeRequest' responseHandler m p body = do
+makeRequest m p body = do
   host <- asks serverHost
   port <- asks serverPort
-  lift $ do
-    withConnection (openConnection host port) $ \c -> do 
+  lift $ withConnection (openConnection host port) $ \c -> do 
       req <- buildRequest $ do
               http m p
               setAccept "application/json"
               setUserAgent defaultUserAgent
       sendRequest c req body
-      responseHandler c
+      receiveResponse c jsonResponseHandler
 
 setUserAgent :: ByteString -> RequestBuilder ()
 setUserAgent = setHeader "User-Agent"
@@ -136,17 +116,17 @@ defaultUserAgent :: ByteString
 defaultUserAgent = "vigilance client"
 
 --TODO: look at response and handle non-200
-jsonResponseHandler :: (FromJSON a)
+jsonResponseHandler :: FromJSON a
                        => Response
                        -> S.InputStream ByteString
                        -> IO (VigilanceResponse a)
 jsonResponseHandler resp stream
-  | responseOk = handleJSONBody stream
-  | notFound   = return . Left $ NotFound 
-  | otherwise  = return . Left $ StatusError statusCode
-  where statusCode = getStatusCode resp
-        responseOk = inRange (200, 299) statusCode
-        notFound   = statusCode == 404
+  | responseOk        = handleJSONBody stream
+  | notFound          = return . Left $ NotFound 
+  | otherwise         = return . Left $ StatusError statusCode
+  where statusCode        = getStatusCode resp
+        responseOk        = inRange (200, 299) statusCode
+        notFound          = statusCode == 404
 
 handleJSONBody :: FromJSON a => S.InputStream ByteString -> IO (VigilanceResponse a)
 handleJSONBody stream = coerceParsed <$> parseJSONBody stream

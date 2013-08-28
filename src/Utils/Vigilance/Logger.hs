@@ -22,7 +22,7 @@ import Data.Text (Text)
 import Utils.Vigilance.Types
 
 createLogChan :: IO LogChan
-createLogChan = atomically $ newTChan
+createLogChan = atomically newTChan
 
 pushLogs :: [Text] -> LogCtxT IO ()
 pushLogs = pushLogs' . map LogMessage

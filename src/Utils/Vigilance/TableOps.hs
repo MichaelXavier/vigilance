@@ -113,7 +113,7 @@ findWatch :: WatchName -> WatchTable -> Maybe EWatch
 findWatch n = listToMaybe . map ewatch . S.lookup (sWatchName .== n)
 
 watchLens :: (NewWatch -> NewWatch) -> WatchName -> WatchTable -> WatchTable
-watchLens f n table = table & with (sWatchName .== n) %~ (over mapped f)
+watchLens f n table = table & with (sWatchName .== n) %~ over mapped f
 
 checkInWatch :: POSIXTime -> WatchName -> WatchTable -> WatchTable
 checkInWatch time = watchLens doCheckIn
@@ -175,35 +175,35 @@ allWatchesEvent :: Query AppState [EWatch]
 allWatchesEvent = view (wTable . to allWatches)
 
 createWatchEvent :: NewWatch -> Update AppState EWatch
-createWatchEvent w = wTable %%= (createWatch w)
+createWatchEvent w = wTable %%= createWatch w
 
 deleteWatchEvent :: WatchName -> Update AppState ()
-deleteWatchEvent i = wTable %= (deleteWatch i)
+deleteWatchEvent i = wTable %= deleteWatch i
 
 findWatchEvent :: WatchName -> Query AppState (Maybe EWatch)
 findWatchEvent i = view (wTable . findWatch')
   where findWatch' = to $ findWatch i
 
 checkInWatchEvent :: POSIXTime -> WatchName -> Update AppState ()
-checkInWatchEvent t i = wTable %= (checkInWatch t i)
+checkInWatchEvent t i = wTable %= checkInWatch t i
 
 pauseWatchEvent :: WatchName -> Update AppState ()
-pauseWatchEvent i = wTable %= (pauseWatch i)
+pauseWatchEvent i = wTable %= pauseWatch i
 
 unPauseWatchEvent :: POSIXTime -> WatchName -> Update AppState ()
-unPauseWatchEvent t i = wTable %= (unPauseWatch t i)
+unPauseWatchEvent t i = wTable %= unPauseWatch t i
 
 sweepTableEvent :: POSIXTime -> Update AppState ()
-sweepTableEvent t = wTable %= (sweepTable t)
+sweepTableEvent t = wTable %= sweepTable t
 
 getNotifyingEvent :: Query AppState [EWatch]
 getNotifyingEvent = view (wTable . to getNotifying)
 
 completeNotifyingEvent :: [WatchName] -> Update AppState ()
-completeNotifyingEvent is = wTable %= (completeNotifying is)
+completeNotifyingEvent is = wTable %= completeNotifying is
 
 mergeStaticWatchesEvent :: [NewWatch] -> Update AppState ()
-mergeStaticWatchesEvent watches = wTable %= (mergeStaticWatches watches)
+mergeStaticWatchesEvent watches = wTable %= mergeStaticWatches watches
 
 $(makeAcidic ''AppState [ 'allWatchesEvent
                         , 'createWatchEvent
@@ -269,7 +269,7 @@ sweepTableS acid = update' acid . SweepTableEvent
 getNotifyingS :: (QueryEvent GetNotifyingEvent, MonadIO m)
               => AcidState (EventState GetNotifyingEvent)
               -> m [EWatch]
-getNotifyingS acid = query' acid $ GetNotifyingEvent
+getNotifyingS acid = query' acid GetNotifyingEvent
 
 completeNotifyingS :: (UpdateEvent CompleteNotifyingEvent, MonadIO m)
                    => AcidState (EventState CompleteNotifyingEvent)

@@ -11,12 +11,12 @@ import Utils.Vigilance.TableOps
 import Utils.Vigilance.Types
 
 sendNotifications :: [EWatch] -> [Notifier] -> LogCtxT IO ()
-sendNotifications ws = sequence_ . map ($ ws)
+sendNotifications ws = mapM_ ($ ws)
 
 runWorker :: AcidState AppState -> [Notifier] -> LogCtxT IO ()
 runWorker acid notifiers = renameLogCtx "Notifier Worker" $ do
                               watches <- getNotifyingS acid
-                              when (not . null $ watches) $ pushLog $ notifyingMsg watches
+                              unless (null watches) $ pushLog $ notifyingMsg watches
                               sendNotifications watches notifiers
                               completeNotifyingS acid $ map (view watchName) watches
 

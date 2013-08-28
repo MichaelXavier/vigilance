@@ -67,7 +67,7 @@ Vigilence
 
 watchesWithEmails :: EWatch -> [(EmailAddress, [EWatch])]
 watchesWithEmails w = zip emails (repeat [w] :: [[EWatch]])
-  where emails = catMaybes $ map extractEmail $ w ^. watchNotifications
+  where emails = mapMaybe extractEmail $ w ^. watchNotifications
         extractEmail (EmailNotification e) = Just e
 
 e2a :: EmailAddress -> Address

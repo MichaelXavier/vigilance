@@ -52,7 +52,11 @@ task :configure do
   sh "cabal configure"
 end
 
-task :build_for_test => [:configure, :install_dependencies_for_test] do
+task :configure_for_test do
+  sh "cabal configure --enable-tests"
+end
+
+task :build_for_test => [:configure_for_test, :install_dependencies_for_test] do
   sh "cabal build #{build_flags}"
 end
 

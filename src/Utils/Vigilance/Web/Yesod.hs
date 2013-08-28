@@ -52,10 +52,10 @@ getWatchR :: WatchName -> Handler Value
 getWatchR =  jsonOrNotFound <=< onWatch findWatchS
 
 deleteWatchR :: WatchName -> Handler Value
-deleteWatchR = alwaysNoContent <=< onWatch deleteWatchS
+deleteWatchR = alwaysNoContent <=< onWatchExists deleteWatchS
 
 postPauseWatchR :: WatchName -> Handler Value
-postPauseWatchR = alwaysNoContent <=< onWatch pauseWatchS
+postPauseWatchR = alwaysNoContent <=< onWatchExists pauseWatchS
 
 postUnPauseWatchR :: WatchName -> Handler Value
 postUnPauseWatchR = alwaysNoContent <=< bindM3 unPauseWatchS getDb getPOSIXTime' . return
@@ -81,8 +81,18 @@ runServer w = run port =<< toWaiApp w
 getDb :: HandlerT WebApp IO (AcidState AppState)
 getDb = view acid <$> getYesod --might be able to use `use`
 
-onWatch :: ((AcidState AppState) -> i -> HandlerT WebApp IO b) -> i -> HandlerT WebApp IO b
-onWatch f i = join $ f <$> getDb <*> pure i
+onWatch :: (AcidState AppState -> WatchName -> HandlerT WebApp IO b) -> WatchName -> HandlerT WebApp IO b
+onWatch f n = join $ f <$> getDb <*> pure n
+
+onWatchExists :: (AcidState AppState -> WatchName -> HandlerT WebApp IO b) -> WatchName -> HandlerT WebApp IO b
+onWatchExists f n = maybe notFound goAhead =<< checkExistence
+  where checkExistence = do db <- getDb
+                            liftIO $ findWatchS db n
+        goAhead        = const $ onWatch f n
+--onWatchExists f n = db <- getDb
+--                    watch <- liftIO $ findWatchS db n
+--                    maybe notFound (on)
+
 
 getPOSIXTime' :: MonadIO m => m POSIXTime
 getPOSIXTime' = liftIO getPOSIXTime

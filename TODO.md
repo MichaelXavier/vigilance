@@ -16,4 +16,6 @@ Issues
 * waiting on fix in data-store for bug in S.map
 * better use of lens. I'm using a lot of nasty hacks, using map/foldl when I'm
   sure there's a combinator for it.
-* add a binary for modifying 
+
+Client TODO:
+* need 404 response on not found for write operations
