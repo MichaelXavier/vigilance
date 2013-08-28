@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -17,19 +18,18 @@ module SpecHelper ( (<$>)
                   , UniqueWatches(..)
                   , module X) where
 
+import ClassyPrelude
 import Control.Applicative ( (<$>)
                            , (<*>)
                            , pure)
 import Data.DeriveTH
 import Data.Derive.Arbitrary (makeArbitrary)
-import Data.List (nubBy)
 import qualified Data.Set as S
-import Data.Text ( Text
-                 , pack)
 import Data.Time.Clock.POSIX (POSIXTime)
 
 import Control.Lens as X hiding (elements)
 import Data.Monoid as X
+import Network.Http.Client (URL)
 import Network.Mail.Mime as X
 import Test.Hspec as X
 import Test.Hspec.Expectations as X
@@ -54,6 +54,16 @@ bumpTime _ s          = s
 
 instance Arbitrary POSIXTime where
   arbitrary = fromInteger <$> arbitrary
+
+genString :: Gen String
+genString = (listOf $ choose charRange)
+  where charRange = ('\32', '\128')
+
+genBS :: Gen ByteString
+genBS = encodeUtf8 . pack <$> genString
+
+instance Arbitrary URL where
+  arbitrary = genBS
 
 $(derive makeArbitrary ''WatchState)
 $(derive makeArbitrary ''WatchInterval)
@@ -85,10 +95,6 @@ instance Arbitrary EmailAddress where
 
 genText :: Gen Text
 genText = pack <$> genString
-
-genString :: Gen String
-genString = (listOf $ choose charRange)
-  where charRange = ('\32', '\128')
 
 newtype UniqueWatches = UniqueWatches [NewWatch]
  deriving ( Eq, Ord, Show)

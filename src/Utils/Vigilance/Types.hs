@@ -14,6 +14,7 @@ module Utils.Vigilance.Types where
 import Prelude (FilePath)
 import ClassyPrelude hiding (FilePath)
 import Control.Concurrent.STM.TChan (TChan)
+import Control.Monad (mzero)
 import Control.Monad.Reader (ReaderT)
 import Control.Lens hiding ((.=))
 import Data.Aeson
@@ -29,6 +30,7 @@ import qualified Data.Store as S
 import           Data.Store.Storable (Storable(..))
 import Data.Time.Clock.POSIX (POSIXTime)
 import qualified Data.Vector as V
+import Network.Http.Client (URL)
 import System.Log.FastLogger ( ToLogStr(..) )
 import Yesod.Core.Dispatch (PathPiece)
 
@@ -95,17 +97,29 @@ newtype EmailAddress = EmailAddress { _unEmailAddress :: Text } deriving ( Show
 
 makeClassy ''EmailAddress
 
-data NotificationPreference = EmailNotification EmailAddress deriving (Show, Eq, Ord)
+data NotificationPreference = EmailNotification EmailAddress |
+                              HTTPNotification URL deriving (Show, Eq, Ord)
 
 instance ToJSON NotificationPreference where
   toJSON (EmailNotification a) = object [ "type"    .= String "email"
                                         , "address" .= String (a ^. unEmailAddress)]
+  toJSON (HTTPNotification u) = object [ "type"    .= String "http"
+                                       , "url" .= String (decodeUtf8 u)]
 
 --TODO: other notifications
 instance FromJSON NotificationPreference where
-  parseJSON = parseEmailNotification
+  parseJSON v = parseEmailNotification v <|>
+                parseHTTPNotification v
     where parseEmailNotification = withObject "EmailNotification" parseEmail
-            where parseEmail obj = EmailNotification <$> obj .: "address"
+          parseEmail obj = do t <- obj .: "type"
+                              case t of
+                                String "email" -> EmailNotification <$> obj .: "address"
+                                _              -> mzero
+          parseHTTPNotification = withObject "HTTPNotification" parseHttp
+          parseHttp obj = do t <- obj .: "type"
+                             case t of
+                               String "http" -> HTTPNotification <$> obj .: "url"
+                               _             -> mzero
 
 newtype POSIXWrapper = POSIXWrapper { unPOSIXWrapper :: POSIXTime }
 
