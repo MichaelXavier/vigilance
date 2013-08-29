@@ -49,5 +49,5 @@ partialConfig = Config "ACIDPATH" (Just . EmailAddress $ "vigilance@example.com"
 configWithWatches :: Config
 configWithWatches = Config "ACIDPATH" (Just . EmailAddress $ "vigilance@example.com") defaultPort defaultLogCfg [w1, w2]
   where w1 = Watch () "foo" (Every 2 Seconds) (Active 0) [ EmailNotification . EmailAddress $ "notify@example.com"
-                                                     , EmailNotification . EmailAddress $ "notify2@example.com"]
+                                                         , HTTPNotification $ "http://example.com"]
         w2 = Watch () "bar" (Every 3 Minutes) (Active 0) []

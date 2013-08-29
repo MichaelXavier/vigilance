@@ -84,6 +84,7 @@ parseNotifications _            = []
 
 parseNotification :: CT.Value -> Maybe NotificationPreference
 parseNotification (CT.List [CT.String "email", CT.String a]) = Just . EmailNotification . EmailAddress $ a
+parseNotification (CT.List [CT.String "http",  CT.String u]) = Just . HTTPNotification . encodeUtf8 $ u
 parseNotification _                                          = Nothing
 
 parseInterval :: CT.Value -> Maybe WatchInterval

@@ -24,11 +24,11 @@ fullWatch :: EWatch
 fullWatch = baseWatch { _watchWState = Active 12345
                       , _watchNotifications = [n1, n2] }
   where n1 = EmailNotification $ EmailAddress "foo@example.com"
-        n2 = EmailNotification $ EmailAddress "bar@example.com"
+        n2 = HTTPNotification  "http://example.com"
 
 fullWatchText :: Text
 fullWatchText = [qc|whatever (1) - Every 1 Seconds - Active 12345s
 
 Notifications:
  - Email: foo@example.com
- - Email: bar@example.com|]
+ - HTTP: http://example.com|]

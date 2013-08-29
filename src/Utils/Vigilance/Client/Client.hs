@@ -67,6 +67,7 @@ Notifications:
 
 renderNotification :: NotificationPreference -> Text
 renderNotification (EmailNotification (EmailAddress a)) = [qc|Email: {a}|]
+renderNotification (HTTPNotification u)                 = [qc|HTTP: {u}|]
 
 renderState :: WatchState -> Text
 renderState (Active t) = [qc|Active {t}|]

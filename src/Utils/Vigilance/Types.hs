@@ -104,7 +104,7 @@ instance ToJSON NotificationPreference where
   toJSON (EmailNotification a) = object [ "type"    .= String "email"
                                         , "address" .= String (a ^. unEmailAddress)]
   toJSON (HTTPNotification u) = object [ "type"    .= String "http"
-                                       , "url" .= String (decodeUtf8 u)]
+                                       , "url"     .= String (decodeUtf8 u)]
 
 --TODO: other notifications
 instance FromJSON NotificationPreference where
