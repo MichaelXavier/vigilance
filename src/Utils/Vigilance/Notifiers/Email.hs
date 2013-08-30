@@ -32,6 +32,7 @@ notify :: EmailContext -> Notifier
 notify ctx watches = renameLogCtx "Email Notifier" $ mapM_ renderSendMail' mails
   where mails = generateEmails watches ctx
 
+--TODO: exception handling
 renderSendMail' :: Mail -> LogCtxT IO ()
 renderSendMail' mail = do pushLog $ "Sending email notification to " <> emails
                           lift $ renderSendMail mail
@@ -69,6 +70,7 @@ watchesWithEmails :: EWatch -> [(EmailAddress, [EWatch])]
 watchesWithEmails w = zip emails (repeat [w] :: [[EWatch]])
   where emails = mapMaybe extractEmail $ w ^. watchNotifications
         extractEmail (EmailNotification e) = Just e
+        extractEmail _                     = Nothing
 
 e2a :: EmailAddress -> Address
 e2a = Address Nothing . view unEmailAddress

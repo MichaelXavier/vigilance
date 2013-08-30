@@ -21,6 +21,7 @@ executable vigilance-server
                        async == 2.*,
                        aeson >=0.6 && <1.0,
                        attoparsec,
+                       blaze-builder,
                        bytestring,
                        acid-state,
                        classy-prelude >=0.5.8 && <1.0,
