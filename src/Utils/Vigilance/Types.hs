@@ -31,6 +31,7 @@ import           Data.Store.Storable (Storable(..))
 import Data.Time.Clock.POSIX (POSIXTime)
 import qualified Data.Vector as V
 import Network.Http.Client (URL)
+import Numeric.Natural (Natural)
 import System.Log.FastLogger ( ToLogStr(..) )
 import Yesod.Core.Dispatch (PathPiece)
 
@@ -52,6 +53,7 @@ instance Bounded ID where
   minBound = ID 1
   maxBound = ID maxBound
 
+--TODO: somewhere have to handle the case of <= 0
 data WatchInterval = Every Integer TimeUnit deriving (Show, Eq, Typeable, Ord)
 
 instance ToJSON WatchInterval where
@@ -106,7 +108,6 @@ instance ToJSON NotificationPreference where
   toJSON (HTTPNotification u) = object [ "type"    .= String "http"
                                        , "url"     .= String (decodeUtf8 u)]
 
---TODO: other notifications
 instance FromJSON NotificationPreference where
   parseJSON v = parseEmailNotification v <|>
                 parseHTTPNotification v
@@ -232,6 +233,13 @@ instance Storable NewWatch where
     S.dimM wns
 
 type WatchTable = Store WatchStoreTag (StoreKRS NewWatch) (StoreIRS NewWatch) (StoreTS NewWatch) NewWatch
+
+data FailedNotification = FailedNotification { _failedWatch         :: EWatch
+                                             , _failedNotifications :: [NotificationPreference]
+                                             , _retries             :: Natural }
+
+makeClassy ''FailedNotification
+
 
 newtype AppState = AppState { _wTable :: WatchTable } deriving (Typeable)
 
