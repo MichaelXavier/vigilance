@@ -6,6 +6,7 @@ module Utils.Vigilance.Client.Client ( getList
                                      , pause
                                      , unPause
                                      , checkIn
+                                     , test
                                      , displayList
                                      , displayWatch
                                      , displayWatchInfo
@@ -90,6 +91,9 @@ unPause n = makeRequest POST (watchRoute n <> "/unpause") emptyBody
 
 checkIn :: WatchName -> ClientCtxT IO (VigilanceResponse ())
 checkIn n = makeRequest POST (watchRoute n <> "/checkin") emptyBody
+
+test :: WatchName -> ClientCtxT IO (VigilanceResponse ())
+test n = makeRequest POST (watchRoute n <> "/test") emptyBody
 
 watchRoute :: WatchName -> ByteString
 watchRoute (WatchName n) = "/watches/" <> encodeUtf8 n

@@ -28,6 +28,7 @@ runCommand (Pause n)   = withErrorHandling doNothing        $ pause n
 runCommand (UnPause n) = withErrorHandling doNothing        $ unPause n
 runCommand (CheckIn n) = withErrorHandling doNothing        $ checkIn n
 runCommand (Info n)    = withErrorHandling displayWatchInfo $ getInfo n
+runCommand (Test n)    = withErrorHandling doNothing        $ test n
 
 doNothing :: a -> IO ()
 doNothing = const $ return ()
@@ -64,7 +65,8 @@ commandParser = listParser    <>
                 pauseParser   <>
                 unPauseParser <>
                 checkInParser <>
-                infoParser
+                infoParser    <>
+                testParser
   where listParser    = command "list"   $
                         info (pure List) $
                         progDesc "List watches"
@@ -79,7 +81,10 @@ commandParser = listParser    <>
                         progDesc "Check in watch"
         infoParser    = command "info"                               $
                         info (Info . wn <$> argument str wnLabel) $
-                        progDesc "Check in watch"
+                        progDesc "Get info about a watch"
+        testParser    = command "test"                               $
+                        info (Test . wn <$> argument str wnLabel) $
+                        progDesc "Test the notifications for a watch"
         wn            = WatchName . pack
         wnLabel       = metavar "WATCH_NAME"
 

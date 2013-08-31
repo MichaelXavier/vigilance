@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Utils.Vigilance.Workers.NotificationWorker (runWorker) where
+module Utils.Vigilance.Workers.NotificationWorker ( runWorker
+                                                  , sendNotifications ) where
 
 import ClassyPrelude
 import Control.Lens

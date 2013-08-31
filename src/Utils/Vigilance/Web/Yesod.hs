@@ -20,8 +20,11 @@ import Network.Wai.Handler.Warp (run)
 import Network.HTTP.Types.Status (noContent204)
 import Yesod
 
+import Utils.Vigilance.Config (configNotifiers)
+import Utils.Vigilance.Logger (runInLogCtx)
 import Utils.Vigilance.TableOps
 import Utils.Vigilance.Types
+import Utils.Vigilance.Workers.NotificationWorker (sendNotifications)
 import Utils.Vigilance.Utils ( bindM2
                              , bindM3 )
 
@@ -40,6 +43,7 @@ mkYesod "WebApp" [parseRoutes|
   /watches/#WatchName/pause   PauseWatchR   POST
   /watches/#WatchName/unpause UnPauseWatchR POST
   /watches/#WatchName/checkin CheckInWatchR POST
+  /watches/#WatchName/test    TestWatchR POST
 |]
 
 getWatchesR :: Handler Value
@@ -57,11 +61,19 @@ deleteWatchR = alwaysNoContent <=< onWatchExists deleteWatchS
 postPauseWatchR :: WatchName -> Handler Value
 postPauseWatchR = alwaysNoContent <=< onWatchExists pauseWatchS
 
+--TODO; handle these with 404s
 postUnPauseWatchR :: WatchName -> Handler Value
 postUnPauseWatchR = alwaysNoContent <=< bindM3 unPauseWatchS getDb getPOSIXTime' . return
 
 postCheckInWatchR :: WatchName -> Handler Value
 postCheckInWatchR = alwaysNoContent <=< bindM3 checkInWatchS getDb getPOSIXTime' . return
+
+--TODO: reflect failures in status
+postTestWatchR :: WatchName -> Handler Value
+postTestWatchR n = maybe notFound doTest =<< onWatch findWatchS n -- TODO: <=<
+  where doTest w = do notifiers <- configNotifiers <$> getConfig
+                      inWebLogCtx $ sendNotifications [w] notifiers
+                      noContent
 
 -- Must explicitly add Content-Length of 0 because http-streams hangs on an
 -- HTTP 1.1 response with 204 and no explicit content length.
@@ -79,7 +91,18 @@ runServer w = run port =<< toWaiApp w
   where port = w ^. cfg . configPort
 
 getDb :: HandlerT WebApp IO (AcidState AppState)
-getDb = view acid <$> getYesod --might be able to use `use`
+getDb = view acid <$> getYesod
+
+inWebLogCtx :: LogCtxT IO a -> HandlerT WebApp IO a
+inWebLogCtx action = do
+  ctx <- LogCtx <$> pure "Web" <*> getLogChan
+  liftIO $ runInLogCtx ctx action
+
+getLogChan :: HandlerT WebApp IO LogChan
+getLogChan = view logChan <$> getYesod
+
+getConfig :: HandlerT WebApp IO Config
+getConfig = view cfg <$> getYesod
 
 onWatch :: (AcidState AppState -> WatchName -> HandlerT WebApp IO b) -> WatchName -> HandlerT WebApp IO b
 onWatch f n = join $ f <$> getDb <*> pure n

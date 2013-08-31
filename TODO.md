@@ -21,3 +21,5 @@ Issues
 
 Client TODO:
 * need 404 response on not found for write operations
+* test causes misleading logs about failure to check in. probably means that
+  message needs to live elsewhere

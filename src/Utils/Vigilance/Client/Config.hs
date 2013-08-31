@@ -24,7 +24,8 @@ data Command = List              |
                Pause WatchName   |
                UnPause WatchName |
                CheckIn WatchName |
-               Info WatchName deriving (Show, Eq)
+               Info WatchName    |
+               Test WatchName deriving (Show, Eq)
 
 data Options = Options { optCommand :: Command
                        , configPath :: FilePath } deriving (Show, Eq)
