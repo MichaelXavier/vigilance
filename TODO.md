@@ -13,7 +13,6 @@ still around. oh well.
 Issues
 * race condition with exit causes process to exit before logs flush. maybe a
   closable queue?
-* waiting on fix in data-store for bug in S.map
 * better use of lens. I'm using a lot of nasty hacks, using map/foldl when I'm
   sure there's a combinator for it.
 * need to handle errors in notifications appropriately. Not sure what
