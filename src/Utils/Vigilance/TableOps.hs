@@ -131,14 +131,9 @@ unPauseWatch t = watchLens unPause
         updateState (Active newTime) = Active newTime
         updateState _                = Active t
 
--- this is an unmitigated disaster because S.map does not reindex properly
--- https://github.com/Palmik/data-store/issues/3
 sweepTable :: POSIXTime -> WatchTable -> WatchTable
-sweepTable time = map' sweep
+sweepTable time = SS.map sweep
   where sweep  = sweepWatch time
-        map' f = S.fromList' . map f' . S.toList
-          where f' (k, w) = (S.dimO (getId k) S..: S.dimO a S..: S.dimO b  S..: S.dimO c S..:. S.dimM d, w')
-                  where w'@(Watch () a b c d) = f w
 
 getNotifying :: WatchTable -> [EWatch]
 getNotifying = map ewatch . S.lookup (sWatchWState .== Notifying)
