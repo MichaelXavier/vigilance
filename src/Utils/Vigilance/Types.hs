@@ -309,6 +309,24 @@ type LogCtxT m a = ReaderT LogCtx m a
 
 type Notifier = [EWatch] -> LogCtxT IO [FailedNotification]
 
+newtype EmailNotifier = EmailNotifier { _emailNotifierNotifier :: Notifier }
+
+makeFields ''EmailNotifier
+
+newtype HTTPNotifier = HTTPNotifier { _httpNotifierNotifier :: Notifier }
+
+makeFields ''HTTPNotifier
+
+newtype LogNotifier = LogNotifier { _logNotifierNotifier  :: Notifier }
+
+makeFields ''LogNotifier
+
+data NotifierGroup = NotifierGroup { _emailNotifier :: Maybe EmailNotifier 
+                                   , _httpNotifier  :: HTTPNotifier
+                                   , _logNotifier   :: LogNotifier }
+
+makeClassy ''NotifierGroup
+
 deriveSafeCopy 0 'base ''WatchName
 deriveSafeCopy 0 'base ''WatchState
 deriveSafeCopy 0 'base ''TimeUnit

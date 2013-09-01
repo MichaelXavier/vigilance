@@ -21,11 +21,11 @@ import qualified Utils.Vigilance.Notifiers.Email as E
 import qualified Utils.Vigilance.Notifiers.Log   as L
 import Utils.Vigilance.Types
 
-configNotifiers :: Config -> [Notifier]
-configNotifiers cfg = catMaybes [logNotifier, emailNotifier, httpNotifier]
-  where logNotifier   = Just L.notify
-        httpNotifier  = Just H.notify
-        emailNotifier = E.notify . E.EmailContext <$> cfg ^. configFromEmail
+configNotifiers :: Config -> NotifierGroup
+configNotifiers cfg = NotifierGroup { _logNotifier = L.notify 
+                                    , _httpNotifier = H.notify
+                                    , _emailNotifier = en }
+  where en = E.notify . E.EmailContext <$> cfg ^. configFromEmail
 
 loadRawConfig :: FilePath -> IO CT.Config
 loadRawConfig = C.load . pure . CT.Required

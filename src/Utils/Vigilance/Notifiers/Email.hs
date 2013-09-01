@@ -35,9 +35,10 @@ data NotificationMail = NotificationMail { _nmWatches :: [EWatch]
 
 makeClassy ''NotificationMail
 
-notify :: EmailContext -> Notifier
-notify ctx watches = renameLogCtx "Email Notifier" $ mconcat <$> mapM renderSendMail' mails
-  where mails = generateEmails watches ctx
+notify :: EmailContext -> EmailNotifier
+notify ctx = EmailNotifier notifierBody
+  where notifierBody watches = renameLogCtx "Email Notifier" $ mconcat <$> mapM renderSendMail' mails
+          where mails = generateEmails watches ctx
 
 --TODO: exception handling
 renderSendMail' :: NotificationMail -> LogCtxT IO [FailedNotification]

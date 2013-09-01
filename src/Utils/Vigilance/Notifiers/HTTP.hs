@@ -21,9 +21,10 @@ import Utils.Vigilance.Logger ( renameLogCtx
                               , vLog )
 import Utils.Vigilance.Types
 
-notify :: Notifier
-notify watches = renameLogCtx "HTTP Notifier" $ catMaybes <$> mapM (uncurry makeRequest) notifications
-  where notifications = watchesWithNotifications watches
+notify :: HTTPNotifier
+notify = HTTPNotifier notifierBody
+  where notifierBody watches = renameLogCtx "HTTP Notifier" $ catMaybes <$> mapM (uncurry makeRequest) notifications
+          where notifications = watchesWithNotifications watches
 
 watchesWithNotifications :: [EWatch] -> [(EWatch, URL)]
 watchesWithNotifications = concatMap extractUrls
