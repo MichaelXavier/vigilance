@@ -9,8 +9,8 @@ import Utils.Vigilance.Logger
 import Utils.Vigilance.Types
 
 -- maybe error return type
-notify :: [EWatch] -> LogCtxT IO ()
-notify watches = renameLogCtx "Log Notifier" $ pushLogs formattedWatches
+notify :: Notifier
+notify watches = renameLogCtx "Log Notifier" $ pushLogs formattedWatches >> return []
   where formattedWatches = map format watches
         format :: EWatch -> Text
         format w = mconcat [ "Watch "

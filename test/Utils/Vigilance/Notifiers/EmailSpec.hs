@@ -15,16 +15,16 @@ spec = parallel $ do
   describe "generateEmails" $ do
     prop "it always uses the context's from" $ \(NonEmpty watches) email ->
       let watches'   = map (\w -> w & watchNotifications <>~ [EmailNotification email]) watches
-          fromEmails = map (addressEmail . mailFrom) $ generateEmails watches' ctx
+          fromEmails = map (addressEmail . mailFrom . view nmMail) $ generateEmails watches' ctx
       in all (== "foo@bar.com") fromEmails
     it "groups into emails by watch preferences" $
       let watches = [ watchForEmails ["foo@bar.com", "bar@baz.com"]
                     , watchForEmails ["bar@baz.com"] ]
-          emails  = generateEmails watches ctx
+          emails  = map (view nmMail) $ generateEmails watches ctx
       in map (map addressEmail . mailTo) emails `shouldBe` [["bar@baz.com"], ["foo@bar.com"]]
     it "includes a description of the watch" $
       let watch = watchForEmails ["bar@baz.com"]
-          email:_  = generateEmails [watch] ctx
+          email:_  = map (view nmMail) $ generateEmails [watch] ctx
       in "- whatever (Every 1 Seconds)" `shouldBeIncludedInBodyOf` email
 
 a `shouldBeIncludedInBodyOf` m = a `shouldBeIncludedIn` body

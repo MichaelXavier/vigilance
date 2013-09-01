@@ -6,6 +6,8 @@ module Utils.Vigilance.Notifiers.Email ( notify
                                        , generateEmails
                                        , EmailContext(..)
                                        , HasEmailContext(..)
+                                       , NotificationMail(..)
+                                       , HasNotificationMail(..)
                                        , Address(..)) where
 
 import ClassyPrelude
@@ -28,23 +30,39 @@ data EmailContext = EmailContext { _fromEmail :: EmailAddress } deriving (Show, 
 
 makeClassy ''EmailContext
 
+data NotificationMail = NotificationMail { _nmWatches :: [EWatch]
+                                         , _nmMail    :: Mail }
+
+makeClassy ''NotificationMail
+
 notify :: EmailContext -> Notifier
-notify ctx watches = renameLogCtx "Email Notifier" $ mapM_ renderSendMail' mails
+notify ctx watches = renameLogCtx "Email Notifier" $ mconcat <$> mapM renderSendMail' mails
   where mails = generateEmails watches ctx
 
 --TODO: exception handling
-renderSendMail' :: Mail -> LogCtxT IO ()
-renderSendMail' mail = do pushLog $ "Sending email notification to " <> emails
-                          lift $ renderSendMail mail
-  where emails = mconcat . map addressEmail . mailTo $ mail
+renderSendMail' :: NotificationMail -> LogCtxT IO [FailedNotification]
+renderSendMail' (NotificationMail ws mail) = do
+  pushLog [qc|Sending email notification to {emailList}|]
+  lift $ handleAny buildFailures $ renderSendMail mail >> return []
+  where emailList = intercalate ", " emails
+        emails    = map addressEmail . mailTo $ mail
+        addrs     = map EmailAddress emails
+        buildFailures e = return [ FailedNotification w n e 0
+                                 | w <- ws
+                                 , n@(EmailNotification addr) <- w ^. watchNotifications
+                                 , elem addr addrs ]
 
-generateEmails :: [EWatch] -> EmailContext -> [Mail]
+--generateFailures :: Mail -> [EWatch] -> SomeException []
+
+
+generateEmails :: [EWatch] -> EmailContext -> [NotificationMail]
 generateEmails watches ctx = M.elems $ M.mapWithKey createMail groupedByEmail -- ehhhhh
   where groupedByEmail = M.fromListWith mappend $ concatMap watchesWithEmails watches
-        createMail toAddr ws = (emptyMail from) { mailTo      = [e2a toAddr]
-                                                , mailHeaders = [("Subject", subject)]
-                                                , mailParts   = [[mailPart ws]] }
-          where subject = [qc|Vigilence notification {watchCount} activated|] :: Text
+        createMail toAddr ws = NotificationMail ws mail
+          where mail = (emptyMail from) { mailTo      = [e2a toAddr]
+                                        , mailHeaders = [("Subject", subject)]
+                                        , mailParts   = [[mailPart ws]] }
+                subject = [qc|Vigilence notification {watchCount} activated|] :: Text
                 watchCount = length ws
         from :: Address
         from = ctx ^. fromEmail . to e2a
