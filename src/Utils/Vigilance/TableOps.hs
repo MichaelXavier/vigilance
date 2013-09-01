@@ -50,6 +50,12 @@ module Utils.Vigilance.TableOps ( allWatches
                                 , mergeStaticWatchesEvent
                                 , MergeStaticWatchesEvent(..)
                                 , mergeStaticWatchesS
+                                , addFailedNotificationsEvent
+                                , AddFailedNotificationsEvent(..)
+                                , addFailedNotificationsS
+                                , allFailedNotificationsEvent
+                                , AllFailedNotificationsEvent(..)
+                                , allFailedNotificationsS
                                 , fromList
                                 , getId
                                 , sWatchId
@@ -200,6 +206,12 @@ completeNotifyingEvent is = wTable %= completeNotifying is
 mergeStaticWatchesEvent :: [NewWatch] -> Update AppState ()
 mergeStaticWatchesEvent watches = wTable %= mergeStaticWatches watches
 
+addFailedNotificationsEvent :: [FailedNotification] -> Update AppState ()
+addFailedNotificationsEvent ns = failed <>= ns
+
+allFailedNotificationsEvent :: Query AppState [FailedNotification]
+allFailedNotificationsEvent = view failed
+
 $(makeAcidic ''AppState [ 'allWatchesEvent
                         , 'createWatchEvent
                         , 'deleteWatchEvent
@@ -210,7 +222,9 @@ $(makeAcidic ''AppState [ 'allWatchesEvent
                         , 'sweepTableEvent
                         , 'getNotifyingEvent
                         , 'completeNotifyingEvent
-                        , 'mergeStaticWatchesEvent ])
+                        , 'mergeStaticWatchesEvent
+                        , 'addFailedNotificationsEvent
+                        , 'allFailedNotificationsEvent ])
 
 allWatchesS :: (QueryEvent AllWatchesEvent, MonadIO m)
                => AcidState (EventState AllWatchesEvent)
@@ -277,3 +291,14 @@ mergeStaticWatchesS :: (UpdateEvent CompleteNotifyingEvent, MonadIO m)
                     -> [NewWatch]
                     -> m ()
 mergeStaticWatchesS acid = update' acid . MergeStaticWatchesEvent
+
+addFailedNotificationsS :: (UpdateEvent AddFailedNotificationsEvent, MonadIO m)
+                        => AcidState (EventState AddFailedNotificationsEvent)
+                        -> [FailedNotification]
+                        -> m ()
+addFailedNotificationsS acid = update' acid . AddFailedNotificationsEvent
+
+allFailedNotificationsS :: (QueryEvent AllFailedNotificationsEvent, MonadIO m)
+                        => AcidState (EventState AllFailedNotificationsEvent)
+                        -> m [FailedNotification]
+allFailedNotificationsS acid = query' acid AllFailedNotificationsEvent

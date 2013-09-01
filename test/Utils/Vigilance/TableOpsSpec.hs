@@ -158,7 +158,7 @@ spec = parallel $ do
 
   --TODO: just use the createWatchS and the like here instead?
   describe "acid events" $ do
-    let acid = openAcidState $ AppState mempty
+    let acid = openAcidState $ AppState mempty mempty
 
     prop "it inserts correctly" $ \w ->
       let (acid', w') = update acid $ insert w
@@ -170,6 +170,13 @@ spec = parallel $ do
           (acid'')    = update_ acid' $ delete w'
           result      = query acid'' $ find w'
       in  result == Nothing
+
+    describe "addFailedNotifications Event" $ do
+      it "appends failures" $
+        let acid'  = update_ acid  $ AddFailedNotificationsEvent [baseFN]
+            acid'' = update_ acid' $ AddFailedNotificationsEvent [baseFN]
+            fns    = query acid'' AllFailedNotificationsEvent
+        in fns `shouldBe` [baseFN, baseFN]
 
   describe "sweepTable" $ do
     prop "does not reduce or increase the size of the table" $ \(UniqueWatches watches) t ->

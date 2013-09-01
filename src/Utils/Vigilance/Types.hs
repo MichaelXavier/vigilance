@@ -240,7 +240,7 @@ data NotificationError = FailedByCode StatusCode |
 data FailedNotification = FailedNotification { _failedWatch     :: EWatch
                                              , _failedPref      :: NotificationPreference
                                              , _failedLastError :: NotificationError
-                                             , _retries         :: Int }
+                                             , _retries         :: Int } deriving (Typeable, Show, Eq)
 
 makeClassy ''FailedNotification
 

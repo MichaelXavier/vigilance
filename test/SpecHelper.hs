@@ -12,6 +12,7 @@ module SpecHelper ( (<$>)
                   , POSIXTime
                   , baseWatch
                   , baseNewWatch
+                  , baseFN
                   , bumpTime
                   , NonEmptyList(..)
                   , Text
@@ -47,6 +48,9 @@ baseWatch = Watch (ID 1) "whatever" (Every 1 Seconds) mempty []
 
 baseNewWatch :: NewWatch
 baseNewWatch = Watch () "whatever" (Every 1 Seconds) mempty []
+
+baseFN :: FailedNotification
+baseFN = FailedNotification baseWatch (HTTPNotification "x") (FailedByCode 500) 0
 
 bumpTime :: Integer -> WatchState -> WatchState
 bumpTime n (Active t) = Active (t + fromInteger n)
