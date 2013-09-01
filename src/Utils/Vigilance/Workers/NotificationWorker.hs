@@ -11,8 +11,8 @@ import Utils.Vigilance.Logger
 import Utils.Vigilance.TableOps
 import Utils.Vigilance.Types
 
-sendNotifications :: [EWatch] -> [Notifier] -> LogCtxT IO ()
-sendNotifications ws = mapM_ ($ ws)
+sendNotifications :: [EWatch] -> [Notifier] -> LogCtxT IO [FailedNotification]
+sendNotifications ws ns = concat <$> mapM ($ ws) ns
 
 runWorker :: AcidState AppState -> [Notifier] -> LogCtxT IO ()
 runWorker acid notifiers = renameLogCtx "Notifier Worker" $ do

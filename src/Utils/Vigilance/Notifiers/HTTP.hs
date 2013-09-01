@@ -44,8 +44,8 @@ makeRequest w url = do
           | otherwise               = failure code
         success code = vLog [qc|{url} returned {code}|] >> return Nothing
         failure code = pushLog [qc|{url} failed with {code}|] >> failedByCode code
-        failedByException e = return . Just $ FailedNotification w notif e 0
-        failedByCode code   = return . Just $ FailedNotification w notif (toException $ FailedByCode code) 0
+        failedByException e = return . Just $ FailedNotification w notif (FailedByException $ show e) 0
+        failedByCode code   = return . Just $ FailedNotification w notif (FailedByCode code) 0
         notif = HTTPNotification url
         
 

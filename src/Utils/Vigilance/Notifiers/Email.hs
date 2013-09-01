@@ -47,7 +47,7 @@ renderSendMail' (NotificationMail ws mail) = do
   where emailList = intercalate ", " emails
         emails    = map addressEmail . mailTo $ mail
         addrs     = map EmailAddress emails
-        buildFailures e = return [ FailedNotification w n e 0
+        buildFailures e = return [ FailedNotification w n (FailedByException $ show e) 0
                                  | w <- ws
                                  , n@(EmailNotification addr) <- w ^. watchNotifications
                                  , elem addr addrs ]

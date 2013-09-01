@@ -32,7 +32,6 @@ import Data.Time.Clock.POSIX (POSIXTime)
 import qualified Data.Vector as V
 import Network.Http.Client ( URL
                            , StatusCode )
-import Numeric.Natural (Natural)
 import System.Log.FastLogger ( ToLogStr(..) )
 import Yesod.Core.Dispatch (PathPiece)
 
@@ -235,18 +234,18 @@ instance Storable NewWatch where
 
 type WatchTable = Store WatchStoreTag (StoreKRS NewWatch) (StoreIRS NewWatch) (StoreTS NewWatch) NewWatch
 
+data NotificationError = FailedByCode StatusCode |
+                         FailedByException Text deriving (Eq, Show, Typeable)
+
 data FailedNotification = FailedNotification { _failedWatch     :: EWatch
                                              , _failedPref      :: NotificationPreference
-                                             , _failedLastError :: SomeException
-                                             , _retries         :: Natural }
+                                             , _failedLastError :: NotificationError
+                                             , _retries         :: Int }
 
 makeClassy ''FailedNotification
 
-data NotificationError = FailedByCode StatusCode deriving (Show, Eq, Typeable)
-
-instance Exception NotificationError
-
-newtype AppState = AppState { _wTable :: WatchTable } deriving (Typeable)
+data AppState = AppState { _wTable :: WatchTable
+                         , _failed :: [FailedNotification] } deriving (Typeable)
 
 makeLenses ''AppState
 
@@ -316,4 +315,6 @@ deriveSafeCopy 0 'base ''TimeUnit
 deriveSafeCopy 0 'base ''WatchInterval
 deriveSafeCopy 0 'base ''Watch
 deriveSafeCopy 0 'base ''NotificationPreference
+deriveSafeCopy 0 'base ''NotificationError
+deriveSafeCopy 0 'base ''FailedNotification
 deriveSafeCopy 0 'base ''AppState
