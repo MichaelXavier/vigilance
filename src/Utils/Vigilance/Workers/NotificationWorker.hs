@@ -1,7 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Utils.Vigilance.Workers.NotificationWorker ( runWorker
-                                                  , sendNotifications ) where
+                                                  , sendNotificationsWithRetry) where
 
 import ClassyPrelude
 import Control.Lens
@@ -14,11 +14,16 @@ import Utils.Vigilance.Types
 sendNotifications :: [EWatch] -> [Notifier] -> LogCtxT IO [FailedNotification]
 sendNotifications ws ns = concat <$> mapM ($ ws) ns
 
+sendNotificationsWithRetry :: AcidState AppState -> [EWatch] -> [Notifier] -> LogCtxT IO ()
+sendNotificationsWithRetry acid watches notifiers = do
+  failures <- sendNotifications watches notifiers
+  addFailedNotificationsS acid failures
+
 runWorker :: AcidState AppState -> [Notifier] -> LogCtxT IO ()
 runWorker acid notifiers = renameLogCtx "Notifier Worker" $ do
                               watches <- getNotifyingS acid
+                              sendNotificationsWithRetry acid watches notifiers
                               unless (null watches) $ pushLog $ notifyingMsg watches
-                              sendNotifications watches notifiers
                               completeNotifyingS acid $ map (view watchName) watches
 
 notifyingMsg :: [EWatch] -> Text

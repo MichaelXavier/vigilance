@@ -80,7 +80,7 @@ runWithConfig rCfg = do cfg     <- lift $ convertConfig rCfg
                                                                                            return (w, r, r')
 
                         let notifiers = configNotifiers cfg
-                        acid      <- lift $ openLocalStateFrom (cfg ^. configAcidPath) (AppState $ initialState cfg)
+                        acid      <- lift $ openLocalStateFrom (cfg ^. configAcidPath) (AppState (initialState cfg) mempty)
                         quitSig   <- lift newWakeSig
 
                         let sweeperH       = errorLogger "Sweeper" lCtx

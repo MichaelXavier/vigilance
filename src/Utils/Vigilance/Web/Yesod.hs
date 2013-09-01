@@ -24,7 +24,7 @@ import Utils.Vigilance.Config (configNotifiers)
 import Utils.Vigilance.Logger (runInLogCtx)
 import Utils.Vigilance.TableOps
 import Utils.Vigilance.Types
-import Utils.Vigilance.Workers.NotificationWorker (sendNotifications)
+import Utils.Vigilance.Workers.NotificationWorker (sendNotificationsWithRetry)
 import Utils.Vigilance.Utils ( bindM2
                              , bindM3 )
 
@@ -72,7 +72,8 @@ postCheckInWatchR = alwaysNoContent <=< bindM3 checkInWatchS getDb getPOSIXTime'
 postTestWatchR :: WatchName -> Handler Value
 postTestWatchR n = maybe notFound doTest =<< onWatch findWatchS n -- TODO: <=<
   where doTest w = do notifiers <- configNotifiers <$> getConfig
-                      inWebLogCtx $ sendNotifications [w] notifiers
+                      db        <- getDb
+                      inWebLogCtx $ sendNotificationsWithRetry db [w] notifiers
                       noContent
 
 -- Must explicitly add Content-Length of 0 because http-streams hangs on an
