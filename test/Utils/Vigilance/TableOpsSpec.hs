@@ -178,6 +178,18 @@ spec = parallel $ do
             fns    = query acid'' AllFailedNotificationsEvent
         in fns `shouldBe` [baseFN, baseFN]
 
+    describe "setFailedNotificationsS Event" $ do
+      it "sets the full list of failures" $
+        let acid'  = update_ acid  $ SetFailedNotificationsEvent [baseFN]
+            fns    = query acid' AllFailedNotificationsEvent
+        in fns `shouldBe` [baseFN]
+
+      it "overwrites existing ones" $
+        let acid'  = update_ acid  $ AddFailedNotificationsEvent [baseFN]
+            acid'' = update_ acid  $ SetFailedNotificationsEvent []
+            fns    = query acid'' AllFailedNotificationsEvent
+        in fns `shouldBe` []
+
   describe "sweepTable" $ do
     prop "does not reduce or increase the size of the table" $ \(UniqueWatches watches) t ->
       let table = fromList watches

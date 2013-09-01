@@ -22,9 +22,7 @@ import qualified Utils.Vigilance.Notifiers.Log   as L
 import Utils.Vigilance.Types
 
 configNotifiers :: Config -> NotifierGroup
-configNotifiers cfg = NotifierGroup { _logNotifier = L.notify 
-                                    , _httpNotifier = H.notify
-                                    , _emailNotifier = en }
+configNotifiers cfg = NotifierGroup en H.notify L.notify
   where en = E.notify . E.EmailContext <$> cfg ^. configFromEmail
 
 loadRawConfig :: FilePath -> IO CT.Config

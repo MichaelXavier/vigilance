@@ -104,7 +104,7 @@ runWithConfig rCfg = do cfg     <- lift $ convertConfig rCfg
                         vLog "Sweeper started"
                         vLog "Starting notifier"
 
-                        notifier <- lift $ async $ workForeverWithDelayed notifierDelay notifierH notifierWorker
+                        nworker <- lift $ async $ workForeverWithDelayed notifierDelay notifierH notifierWorker
 
                         vLog "Notifier started"
 
@@ -116,7 +116,7 @@ runWithConfig rCfg = do cfg     <- lift $ convertConfig rCfg
 
                         let workers = [ server
                                       , sweeper
-                                      , notifier
+                                      , nworker
                                       , static ]
 
                         vLog "configuring signal handlers"

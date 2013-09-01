@@ -25,6 +25,7 @@ import Network.Mail.Mime ( Address(..)
 import Utils.Vigilance.Logger ( pushLog
                               , renameLogCtx )
 import Utils.Vigilance.Types
+import Utils.Vigilance.Utils (concatMapM)
 
 data EmailContext = EmailContext { _fromEmail :: EmailAddress } deriving (Show, Eq)
 
@@ -37,7 +38,7 @@ makeClassy ''NotificationMail
 
 notify :: EmailContext -> EmailNotifier
 notify ctx = EmailNotifier notifierBody
-  where notifierBody watches = renameLogCtx "Email Notifier" $ mconcat <$> mapM renderSendMail' mails
+  where notifierBody watches = renameLogCtx "Email Notifier" $ concatMapM renderSendMail' mails
           where mails = generateEmails watches ctx
 
 --TODO: exception handling

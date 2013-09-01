@@ -1,13 +1,15 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 module Utils.Vigilance.Utils ( watchIntervalSeconds
                              , WakeSig
                              , newWakeSig
                              , wakeUp
                              , waitForWake
+                             , concatMapM
                              , bindM3
                              , bindM2) where
 
-import Control.Monad ( join
-                     , liftM3
+import ClassyPrelude
+import Control.Monad ( liftM3
                      , liftM2 )
 
 import Control.Monad.STM (atomically)
@@ -25,6 +27,10 @@ watchIntervalSeconds (Every n Hours)   = n * 60 * 60
 watchIntervalSeconds (Every n Days)    = n * 60 * 60 * 24
 watchIntervalSeconds (Every n Weeks)   = n * 60 * 60 * 24 * 7
 watchIntervalSeconds (Every n Years)   = n * 60 * 60 * 24 * 365
+
+
+concatMapM :: (Monad m, Applicative m) => (a -> m [b]) -> [a] -> m [b]
+concatMapM f = (concat <$>) . mapM f
 
 bindM2 :: Monad m => (a -> b -> m c) -> m a -> m b -> m c
 bindM2 f m1 m2  = join $ liftM2 f m1 m2

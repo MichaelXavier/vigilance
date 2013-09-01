@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildcards #-}
+{-# LANGUAGE RecordWildCards #-}
 module Utils.Vigilance.Workers.NotificationWorker ( runWorker
                                                   , sendNotificationsWithRetry) where
 
@@ -11,9 +11,10 @@ import Data.Acid (AcidState)
 import Utils.Vigilance.Logger
 import Utils.Vigilance.TableOps
 import Utils.Vigilance.Types
+import Utils.Vigilance.Utils (concatMapM)
 
 sendNotifications :: [EWatch] -> NotifierGroup -> LogCtxT IO [FailedNotification]
-sendNotifications ws ns = concat <$> mapM ($ ws) $ extractNotifiers ns
+sendNotifications ws ns = concatMapM ($ ws) $ extractNotifiers ns
 
 sendNotificationsWithRetry :: AcidState AppState -> [EWatch] -> NotifierGroup -> LogCtxT IO ()
 sendNotificationsWithRetry acid watches notifiers = do
@@ -33,6 +34,6 @@ notifyingMsg watches = mconcat ["Notifying for ", length' watches, " watches: ",
         names   = intercalate ", " $ map (view (watchName . unWatchName)) watches
 
 extractNotifiers :: NotifierGroup -> [Notifier]
-extractNotifiers NotifierGroup {..} = catMaybes [ _emailNotifier
-                                                , Just _logNotifier
-                                                , Just _httpNotifier ]
+extractNotifiers NotifierGroup {..} = catMaybes [ view notifier <$> _ngEmail
+                                                , Just $ _ngLog ^. notifier
+                                                , Just $ _ngHTTP ^. notifier]

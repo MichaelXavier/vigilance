@@ -56,6 +56,9 @@ module Utils.Vigilance.TableOps ( allWatches
                                 , allFailedNotificationsEvent
                                 , AllFailedNotificationsEvent(..)
                                 , allFailedNotificationsS
+                                , setFailedNotificationsEvent
+                                , SetFailedNotificationsEvent(..)
+                                , setFailedNotificationsS
                                 , fromList
                                 , getId
                                 , sWatchId
@@ -212,6 +215,9 @@ addFailedNotificationsEvent ns = failed <>= ns
 allFailedNotificationsEvent :: Query AppState [FailedNotification]
 allFailedNotificationsEvent = view failed
 
+setFailedNotificationsEvent :: [FailedNotification] -> Update AppState ()
+setFailedNotificationsEvent ns = failed .= ns
+
 $(makeAcidic ''AppState [ 'allWatchesEvent
                         , 'createWatchEvent
                         , 'deleteWatchEvent
@@ -224,7 +230,8 @@ $(makeAcidic ''AppState [ 'allWatchesEvent
                         , 'completeNotifyingEvent
                         , 'mergeStaticWatchesEvent
                         , 'addFailedNotificationsEvent
-                        , 'allFailedNotificationsEvent ])
+                        , 'allFailedNotificationsEvent
+                        , 'setFailedNotificationsEvent ])
 
 allWatchesS :: (QueryEvent AllWatchesEvent, MonadIO m)
                => AcidState (EventState AllWatchesEvent)
@@ -302,3 +309,9 @@ allFailedNotificationsS :: (QueryEvent AllFailedNotificationsEvent, MonadIO m)
                         => AcidState (EventState AllFailedNotificationsEvent)
                         -> m [FailedNotification]
 allFailedNotificationsS acid = query' acid AllFailedNotificationsEvent
+
+setFailedNotificationsS :: (UpdateEvent SetFailedNotificationsEvent, MonadIO m)
+                        => AcidState (EventState SetFailedNotificationsEvent)
+                        -> [FailedNotification]
+                        -> m ()
+setFailedNotificationsS acid = update' acid . AddFailedNotificationsEvent

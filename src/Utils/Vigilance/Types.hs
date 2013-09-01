@@ -309,21 +309,21 @@ type LogCtxT m a = ReaderT LogCtx m a
 
 type Notifier = [EWatch] -> LogCtxT IO [FailedNotification]
 
-newtype EmailNotifier = EmailNotifier { _emailNotifierNotifier :: Notifier }
+newtype EmailNotifier = EmailNotifier { _emailNotifier :: Notifier }
 
 makeFields ''EmailNotifier
 
-newtype HTTPNotifier = HTTPNotifier { _httpNotifierNotifier :: Notifier }
+newtype HTTPNotifier = HTTPNotifier { _httpNotifier :: Notifier }
 
 makeFields ''HTTPNotifier
 
-newtype LogNotifier = LogNotifier { _logNotifierNotifier  :: Notifier }
+newtype LogNotifier = LogNotifier { _logNotifier  :: Notifier }
 
 makeFields ''LogNotifier
 
-data NotifierGroup = NotifierGroup { _emailNotifier :: Maybe EmailNotifier 
-                                   , _httpNotifier  :: HTTPNotifier
-                                   , _logNotifier   :: LogNotifier }
+data NotifierGroup = NotifierGroup { _ngEmail :: Maybe EmailNotifier 
+                                   , _ngHTTP  :: HTTPNotifier
+                                   , _ngLog   :: LogNotifier }
 
 makeClassy ''NotifierGroup
 
