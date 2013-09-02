@@ -50,7 +50,7 @@ baseNewWatch :: NewWatch
 baseNewWatch = Watch () "whatever" (Every 1 Seconds) mempty []
 
 baseFN :: FailedNotification
-baseFN = FailedNotification baseWatch (HTTPNotification "x") (FailedByCode 500) 0
+baseFN = FailedNotification baseWatch (HTTPNotification "example.com") (FailedByCode 500) 0
 
 bumpTime :: Integer -> WatchState -> WatchState
 bumpTime n (Active t) = Active (t + fromInteger n)
