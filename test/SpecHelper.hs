@@ -7,6 +7,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module SpecHelper ( (<$>)
                   , (<*>)
+                  , atomically
                   , pure
                   , qc
                   , POSIXTime
@@ -28,6 +29,8 @@ import Data.Derive.Arbitrary (makeArbitrary)
 import qualified Data.Set as S
 import Data.Time.Clock.POSIX (POSIXTime)
 
+import Control.Concurrent.STM (atomically)
+import Control.Monad.Loops as X
 import Control.Lens as X hiding (elements)
 import Data.Monoid as X
 import Network.Http.Client (URL)
@@ -40,6 +43,7 @@ import Test.QuickCheck
 import Test.QuickCheck.Property.Common as X
 import Test.QuickCheck.Property.Monoid as X
 import Utils.Vigilance.Types as X
+import Utils.Vigilance.Utils as X
 
 
 

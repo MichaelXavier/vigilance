@@ -5,6 +5,7 @@ module Utils.Vigilance.Utils ( watchIntervalSeconds
                              , wakeUp
                              , waitForWake
                              , concatMapM
+                             , tryReadTChan
                              , bindM3
                              , bindM2) where
 
@@ -12,7 +13,11 @@ import ClassyPrelude
 import Control.Monad ( liftM3
                      , liftM2 )
 
-import Control.Monad.STM (atomically)
+import Control.Monad.STM ( atomically
+                         , orElse
+                         , STM )
+import Control.Concurrent.STM.TChan ( TChan
+                                    , readTChan )
 import Control.Concurrent.STM.TMVar ( TMVar
                                     , newEmptyTMVarIO
                                     , takeTMVar
@@ -48,3 +53,6 @@ waitForWake = atomically . takeTMVar
 
 wakeUp :: WakeSig a -> a -> IO ()
 wakeUp sig = atomically . putTMVar sig
+
+tryReadTChan :: TChan a -> STM (Maybe a)
+tryReadTChan c = (Just <$> readTChan c) `orElse` (return Nothing)

@@ -5,6 +5,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Utils.Vigilance.Workers.NotificationRetryWorker ( runWorker
                                                        , failuresToRetry
+                                                       , notifyOrBump
                                                        , renderFail ) where
 
 import ClassyPrelude
@@ -32,9 +33,9 @@ notifyOrBump n fn = do
   fn' <- listToMaybe <$> n [watch]
   maybe retrySuccessful retryFailed fn'
   where retrySuccessful = return Nothing
-        retryFailed fn' = return . Just $ fn' & retries +~ 1
+        retryFailed fn' = return . Just $ fn' & retries .~ (fn ^. retries + 1)
         watch           = fn ^. failedWatch
-        wn              = watch ^. watchName
+        wn              = watch ^. watchName . unWatchName
         logMsg = [qc|Retrying notification {fn ^. failedPref} for {wn} after {fn ^. retries} retries|]
 
 notify :: NotifierGroup -> FailedNotification -> LogCtxT IO (Maybe FailedNotification)
