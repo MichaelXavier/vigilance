@@ -9,6 +9,7 @@ then never add it to the config, it may be surprising when you find out its
 still around. oh well.
 
 * documentation of config stuff
+* swap in IO test jig for testing notifiers
 
 Issues
 * race condition with exit causes process to exit before logs flush. maybe a

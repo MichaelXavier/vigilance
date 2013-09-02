@@ -55,6 +55,7 @@ import Utils.Vigilance.Worker ( workForeverWithDelayed
 import Utils.Vigilance.Web.Yesod (runServer, WebApp(..))
 import qualified Utils.Vigilance.Workers.LoggerWorker as LW
 import qualified Utils.Vigilance.Workers.NotificationWorker as NW
+import qualified Utils.Vigilance.Workers.NotificationRetryWorker as RW
 import qualified Utils.Vigilance.Workers.StaticWatchWorker as WW
 import qualified Utils.Vigilance.Workers.SweeperWorker as SW
 
@@ -87,8 +88,10 @@ runWithConfig rCfg = do cfg     <- lift $ convertConfig rCfg
                         let notifierH      = errorLogger "Notifier" lCtx
                         let loggerH        = errorLogger "Logger" lCtx
                         let staticH        = errorLogger "Config Reload" lCtx
+                        let retryH         = errorLogger "Retry" lCtx
                         let sweeperWorker  = runInLogCtx lCtx $ SW.runWorker acid
                         let notifierWorker = runInLogCtx lCtx $ NW.runWorker acid notifiers
+                        let retryWorker    = runInLogCtx lCtx $ RW.runWorker acid (cfg ^. configMaxRetries) notifiers
                         let loggerWorker   = LW.runWorker logChan cfg configChanR
                         let watchWorker    = runInLogCtx lCtx $ WW.runWorker acid configChanR'
                         let webApp         = WebApp acid cfg logChan
@@ -108,6 +111,12 @@ runWithConfig rCfg = do cfg     <- lift $ convertConfig rCfg
 
                         vLog "Notifier started"
 
+                        vLog "Starting retry worker"
+
+                        rworker <- lift $ async $ workForeverWithDelayed retryDelay retryH retryWorker
+
+                        vLog "Retry worker started"
+
                         vLog "Starting web server"
                         --TODO: give custom logger to server
                         server <- lift $ async $ runServer webApp
@@ -117,6 +126,7 @@ runWithConfig rCfg = do cfg     <- lift $ convertConfig rCfg
                         let workers = [ server
                                       , sweeper
                                       , nworker
+                                      , rworker
                                       , static ]
 
                         vLog "configuring signal handlers"
@@ -152,8 +162,10 @@ sweeperDelay :: Int
 sweeperDelay = 5 -- arbitrary
 
 notifierDelay :: Int
---notifierDelay = 300 -- arbitrary
 notifierDelay = 5 -- arbitrary
+
+retryDelay :: Int
+retryDelay = 30
 
 noConfig :: IO ()
 noConfig = putStrLn "config file argument missing" >> exitFailure

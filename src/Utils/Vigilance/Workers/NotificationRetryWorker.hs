@@ -16,7 +16,6 @@ import Utils.Vigilance.Logger ( pushLog
                               , vLog )
 import Utils.Vigilance.TableOps
 import Utils.Vigilance.Types
-import Utils.Vigilance.Utils (concatMapM)
 
 -- | Intended to be exclusive
 runWorker :: AcidState AppState -> Int -> NotifierGroup -> LogCtxT IO ()
