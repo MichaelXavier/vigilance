@@ -38,6 +38,7 @@ convertConfig cfg = mempty <> Config <$> lud defaultAcidPath "vigilance.acid_pat
                                      <*> lud defaultPort "vigilance.port"
                                      <*> parseLogCfg
                                      <*> (parseWatches <$> getPOSIXTime <*> C.getMap cfg)
+                                     <*> lud defaultMaxRetries "vigilance.max_retries"
   where lu             = C.lookup cfg
         lud d          = C.lookupDefault d cfg
         toEmailAddress = fmap (EmailAddress . pack)

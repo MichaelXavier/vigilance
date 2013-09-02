@@ -40,14 +40,14 @@ instance Eq LaxWatchMatcher where
           cleanState s          = s
 
 fullConfig :: Config
-fullConfig = Config "ACIDPATH" (Just . EmailAddress $ "vigilance@example.com") 9000 logCfg []
+fullConfig = Config "ACIDPATH" (Just . EmailAddress $ "vigilance@example.com") 9000 logCfg [] 5
   where logCfg = LogCfg "LOGPATH" True
 
 partialConfig :: Config
-partialConfig = Config "ACIDPATH" (Just . EmailAddress $ "vigilance@example.com") defaultPort defaultLogCfg []
+partialConfig = Config "ACIDPATH" (Just . EmailAddress $ "vigilance@example.com") defaultPort defaultLogCfg [] defaultMaxRetries
 
 configWithWatches :: Config
-configWithWatches = Config "ACIDPATH" (Just . EmailAddress $ "vigilance@example.com") defaultPort defaultLogCfg [w1, w2]
+configWithWatches = Config "ACIDPATH" (Just . EmailAddress $ "vigilance@example.com") defaultPort defaultLogCfg [w1, w2] defaultMaxRetries
   where w1 = Watch () "foo" (Every 2 Seconds) (Active 0) [ EmailNotification . EmailAddress $ "notify@example.com"
                                                          , HTTPNotification $ "http://example.com"]
         w2 = Watch () "bar" (Every 3 Minutes) (Active 0) []

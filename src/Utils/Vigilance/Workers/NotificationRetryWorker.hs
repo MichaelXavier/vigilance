@@ -4,6 +4,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 module Utils.Vigilance.Workers.NotificationRetryWorker ( runWorker
+                                                       , failuresToRetry
                                                        , renderFail ) where
 
 import ClassyPrelude
@@ -18,13 +19,13 @@ import Utils.Vigilance.Types
 import Utils.Vigilance.Utils (concatMapM)
 
 -- | Intended to be exclusive
-runWorker :: AcidState AppState -> NotifierGroup -> LogCtxT IO ()
-runWorker acid notifiers = renameLogCtx "Notification Retry Worker" $ do
+runWorker :: AcidState AppState -> Int -> NotifierGroup -> LogCtxT IO ()
+runWorker acid maxRetries notifiers = renameLogCtx "Notification Retry Worker" $ do
   fails  <- lift $ allFailedNotificationsS acid
   fails' <- catMaybes <$> mapM (notify notifiers) fails
   mapM_ logFail fails'
-  --TODO: reject excessive retries, configurable
-  lift $ setFailedNotificationsS acid fails'
+  let toRetry = failuresToRetry maxRetries fails'
+  lift $ setFailedNotificationsS acid toRetry
 
 notifyOrBump :: Notifier -> FailedNotification -> LogCtxT IO (Maybe FailedNotification)
 notifyOrBump n fn = do
@@ -55,3 +56,7 @@ renderFail FailedNotification {..} = [qc|Watch {wn} failed to notify after {_ret
 renderPref :: NotificationPreference -> Text
 renderPref (EmailNotification (EmailAddress a)) = [qc|EmailNotification {a}|]
 renderPref (HTTPNotification u)                 = [qc|HTTPNotification {u}|]
+
+failuresToRetry :: Int -> [FailedNotification] -> [FailedNotification]
+failuresToRetry maxRetries = filter underLimit
+  where underLimit fn = fn ^. retries < maxRetries

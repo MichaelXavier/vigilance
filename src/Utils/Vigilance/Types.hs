@@ -254,28 +254,33 @@ data LogCfg = LogCfg { _logCfgPath    :: FilePath
 
 makeClassy ''LogCfg
 
-data Config = Config { _configAcidPath  :: FilePath
-                     , _configFromEmail :: Maybe EmailAddress
-                     , _configPort      :: Int
-                     , _configLogCfg    :: LogCfg
-                     , _configWatches   :: [NewWatch] } deriving (Show, Eq)
+data Config = Config { _configAcidPath   :: FilePath
+                     , _configFromEmail  :: Maybe EmailAddress
+                     , _configPort       :: Int
+                     , _configLogCfg     :: LogCfg
+                     , _configWatches    :: [NewWatch]
+                     , _configMaxRetries :: Int } deriving (Show, Eq)
 
 makeClassy ''Config
 
 -- this is unsound
 instance Monoid Config where
-  mempty = Config defaultAcidPath Nothing defaultPort defaultLogCfg mempty
-  Config apa ea pa la wa `mappend` Config apb eb pb lb wb = Config (nonDefault defaultAcidPath apa apb)
-                                                                   (chooseJust ea eb)
-                                                                   (nonDefault defaultPort pa pb)
-                                                                   (nonDefault defaultLogCfg la lb)
-                                                                   (mappend wa wb)
+  mempty = Config defaultAcidPath Nothing defaultPort defaultLogCfg mempty defaultMaxRetries
+  Config apa ea pa la wa ra `mappend` Config apb eb pb lb wb rb = Config (nonDefault defaultAcidPath apa apb)
+                                                                         (chooseJust ea eb)
+                                                                         (nonDefault defaultPort pa pb)
+                                                                         (nonDefault defaultLogCfg la lb)
+                                                                         (mappend wa wb)
+                                                                         (nonDefault defaultMaxRetries ra rb)
     where chooseJust a@(Just _) _ = a
           chooseJust _ b          = b
           nonDefault defValue a b
             | a == defValue = b
             | b == defValue = a
             | otherwise     = b
+
+defaultMaxRetries :: Int
+defaultMaxRetries = 3
 
 defaultLogCfg :: LogCfg
 defaultLogCfg = LogCfg defaultLogPath False

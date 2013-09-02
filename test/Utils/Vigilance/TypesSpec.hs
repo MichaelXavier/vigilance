@@ -17,7 +17,7 @@ spec = parallel $ do
         _      -> result == b
   describe "Monoid Config" $ do
     it "has reasonable defaults" $
-      mempty `shouldBe` Config "state/AppState" Nothing 3000 (LogCfg "log/vigilance.log" False) []
+      mempty `shouldBe` Config "state/AppState" Nothing 3000 (LogCfg "log/vigilance.log" False) [] 3
 
     prop "obeys the law" $
       property $ eq $ prop_Monoid (T :: T Config)
