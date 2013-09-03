@@ -125,7 +125,7 @@ Test-Suite test-vigilance
                        HUnit>=1.2.5,
                        interpolatedstring-perl6 >=0.9.0 && <1.0,
                        io-streams,
-                       QuickCheck,
+                       QuickCheck>=1.2.5,
                        quickcheck-properties,
                        lens >=3.9 && < 4.0,
                        derive >=2.5.11 && < 3.0,
