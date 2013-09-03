@@ -17,7 +17,7 @@ Bug-Reports:        http://github.com/michaelxavier/vigilance/issues
 executable vigilance-server
   hs-source-dirs:     src
   main-is: Utils/Vigilance/Main.hs
-  build-depends:       base >=4.6 && <4.7,
+  build-depends:       base >=4.5 && <4.7,
                        async == 2.*,
                        aeson >=0.6 && <1.0,
                        attoparsec,
@@ -59,7 +59,7 @@ executable vigilance-server
 executable vigilance
   hs-source-dirs:     src
   main-is: Utils/Vigilance/Client/Main.hs
-  build-depends:       base >=4.6 && <4.7,
+  build-depends:       base >=4.5 && <4.7,
                        async == 2.*,
                        aeson >=0.6 && <1.0,
                        attoparsec,
@@ -104,7 +104,7 @@ Test-Suite test-vigilance
   hs-source-dirs:     src,test
   Main-Is: Spec.hs
   ghc-options: -threaded -O3 -rtsopts
-  build-depends:       base   >=4.6 && <4.7,
+  build-depends:       base   >=4.5 && <4.7,
                        async == 2.*,
                        aeson >=0.6 && <1.0,
                        attoparsec,
