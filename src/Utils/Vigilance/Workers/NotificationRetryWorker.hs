@@ -22,10 +22,12 @@ import Utils.Vigilance.Types
 runWorker :: AcidState AppState -> Int -> NotifierGroup -> LogCtxT IO ()
 runWorker acid maxRetries notifiers = renameLogCtx "Notification Retry Worker" $ do
   fails  <- lift $ allFailedNotificationsS acid
+  unless (null fails) $ vLog [qc|Retrying failed notifications for {startLog fails}|]
   fails' <- catMaybes <$> mapM (notify notifiers) fails
   mapM_ logFail fails'
   let toRetry = failuresToRetry maxRetries fails'
   lift $ setFailedNotificationsS acid toRetry
+  where startLog fails = intercalate ", " $ map (\w -> w ^. failedWatch . watchName . unWatchName) fails
 
 notifyOrBump :: Notifier -> FailedNotification -> LogCtxT IO (Maybe FailedNotification)
 notifyOrBump n fn = do

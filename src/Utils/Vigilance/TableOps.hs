@@ -314,4 +314,4 @@ setFailedNotificationsS :: (UpdateEvent SetFailedNotificationsEvent, MonadIO m)
                         => AcidState (EventState SetFailedNotificationsEvent)
                         -> [FailedNotification]
                         -> m ()
-setFailedNotificationsS acid = update' acid . AddFailedNotificationsEvent
+setFailedNotificationsS acid = update' acid . SetFailedNotificationsEvent

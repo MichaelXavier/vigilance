@@ -165,7 +165,8 @@ notifierDelay :: Int
 notifierDelay = 5 -- arbitrary
 
 retryDelay :: Int
-retryDelay = 30
+--retryDelay = 30
+retryDelay = 10
 
 noConfig :: IO ()
 noConfig = putStrLn "config file argument missing" >> exitFailure
