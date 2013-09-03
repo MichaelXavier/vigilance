@@ -82,6 +82,46 @@ The following values are defaulted if not supplied by the config:
 ## API
 
 # Vigilance Client
+Vigilance Client is available under the `vigilance` binary. It allows you to
+interact with a vigilance server over HTTP in a concise way. The idea behind
+this is that it should make it very easy to insert check-ins in crontabs and
+shell scripts.
+
+
+# Configuration
+Vigilance by default looks for a `.vigilance` file in your home directory,
+which looks like:
+
+```
+vigilance
+{
+  host = "localhost"
+  port = 3000
+}
+```
+
+# Usage
+Run `vigilance --help` for help:
+```
+vigilance - tool for managing vigilance watches locally or remotely.
+
+Usage: vigilance COMMAND [-c|--config FILE]
+
+Available options:
+  -h,--help                Show this help text
+  -c,--config FILE         Config file. Defaults to ~/.vigilance
+
+Available commands:
+  list                     List watches
+  pause                    Pause watch
+  unpause                  Unpause watch
+  checkin                  Check in watch
+  info                     Get info about a watch
+  test                     Test the notifications for a watch
+```
+
+All commands except `list` take a name argument for the watch like: `vigilance
+pause foo`.
 
 ## Status
 Currently unreleased and under active development, but I'm getting close. See
