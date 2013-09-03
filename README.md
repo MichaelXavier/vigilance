@@ -1,4 +1,5 @@
 # Vigilance
+[![Build Status](https://travis-ci.org/MichaelXavier/vigilance.png?branch=master)](https://travis-ci.org/MichaelXavier/vigilance)
 
 Vigilance is a [dead man's switch](https://en.wikipedia.org/wiki/Dead_man%27s_switch)
 (or vigilance switch). You define named **watches** that you expect to happen
