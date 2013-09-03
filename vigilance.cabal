@@ -122,7 +122,7 @@ Test-Suite test-vigilance
                        http-types,
                        hspec  >= 1.6 && < 2.0,
                        hspec-expectations,
-                       HUnit,
+                       HUnit>=1.2.5,
                        interpolatedstring-perl6 >=0.9.0 && <1.0,
                        io-streams,
                        QuickCheck,
