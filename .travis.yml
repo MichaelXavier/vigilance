@@ -1,1 +1,18 @@
-language:  haskell
+language: haskell
+before_install:
+  # Uncomment whenever hackage is down.
+  # - mkdir -p ~/.cabal && cp travis/config ~/.cabal/config && cabal update
+  - cabal update
+
+  # Try installing some of the build-deps with apt-get for speed.
+  - travis/cabal-apt-install $mode
+
+install:
+  - cabal configure -flib-Werror $mode
+  - cabal build
+
+env:
+  - mode="--enable-tests" script="cabal test --show-details=always"
+  # - mode="--enable-tests -fsafe" script="cabal test"
+  # - mode="--enable-tests -fdump-splices" script="cabal test --show-details=always"
+  # - mode="--enable-benchmarks -fdump-splices" script="cabal bench"
