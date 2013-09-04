@@ -18,7 +18,6 @@ module Utils.Vigilance.Client.Client ( getList
 
 import ClassyPrelude
 import Control.Lens
-import Control.Monad ((<=<))
 import Control.Monad.Trans.Reader (asks)
 import Data.Aeson ( FromJSON
                   , json
@@ -111,7 +110,7 @@ makeRequest m p body = do
               http m p
               setAccept "application/json"
               setUserAgent defaultUserAgent
-      sendRequest c req body
+      void $ sendRequest c req body
       receiveResponse c jsonResponseHandler
 
 setUserAgent :: ByteString -> RequestBuilder ()

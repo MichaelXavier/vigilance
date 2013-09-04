@@ -5,7 +5,6 @@ module Main (main) where
 
 import Prelude (FilePath)
 import ClassyPrelude hiding (FilePath)
-import Control.Monad ((<=<))
 import Control.Monad.Trans.Reader (runReaderT)
 import Options.Applicative
 import Options.Applicative.Builder.Internal ( CommandFields
@@ -33,7 +32,8 @@ runCommand (Test n)    = withErrorHandling doNothing        $ test n
 doNothing :: a -> IO ()
 doNothing = const $ return ()
 
-withErrorHandling display action = either (lift . displayError) (lift . display) =<< action
+withErrorHandling :: (a -> IO ()) -> ClientCtxT IO (Either VError a) -> ClientCtxT IO ()
+withErrorHandling display act = either (lift . displayError) (lift . display) =<< act
 
 --TODO: better error reporting
 displayError :: VError -> IO ()
