@@ -35,7 +35,6 @@ doNothing = const $ return ()
 withErrorHandling :: (a -> IO ()) -> ClientCtxT IO (Either VError a) -> ClientCtxT IO ()
 withErrorHandling display act = either (lift . displayError) (lift . display) =<< act
 
---TODO: better error reporting
 displayError :: VError -> IO ()
 displayError e = putStrLn (message e) >> exitFailure
   where message NotFound           = "Watch not found"
@@ -87,5 +86,3 @@ commandParser = listParser    <>
                         progDesc "Test the notifications for a watch"
         wn            = WatchName . pack
         wnLabel       = metavar "WATCH_NAME"
-
-

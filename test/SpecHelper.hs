@@ -64,7 +64,7 @@ instance Arbitrary POSIXTime where
   arbitrary = fromInteger <$> arbitrary
 
 genString :: Gen String
-genString = (listOf $ choose charRange)
+genString = listOf $ choose charRange
   where charRange = ('\32', '\128')
 
 genBS :: Gen ByteString

@@ -55,4 +55,4 @@ wakeUp :: WakeSig a -> a -> IO ()
 wakeUp sig = atomically . putTMVar sig
 
 tryReadTChan :: TChan a -> STM (Maybe a)
-tryReadTChan c = (Just <$> readTChan c) `orElse` (return Nothing)
+tryReadTChan c = (Just <$> readTChan c) `orElse` return Nothing

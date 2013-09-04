@@ -52,10 +52,7 @@ renderSendMail' (NotificationMail ws mail) = do
         buildFailures e = return [ FailedNotification w n (FailedByException $ show e) 0
                                  | w <- ws
                                  , n@(EmailNotification addr) <- w ^. watchNotifications
-                                 , elem addr addrs ]
-
---generateFailures :: Mail -> [EWatch] -> SomeException []
-
+                                 , addr `elem` addrs ]
 
 generateEmails :: [EWatch] -> EmailContext -> [NotificationMail]
 generateEmails watches ctx = M.elems $ M.mapWithKey createMail groupedByEmail -- ehhhhh

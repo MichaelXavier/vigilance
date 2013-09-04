@@ -51,4 +51,4 @@ makeRequest w url = do
         
 
 jsonBodyStream :: ToJSON a => a -> IO (S.OutputStream Builder -> IO ())
-jsonBodyStream x = inputStreamBody <$> (S.fromLazyByteString $ encode x)
+jsonBodyStream = fmap inputStreamBody . S.fromLazyByteString . encode
