@@ -90,12 +90,5 @@ parseNotification _                                          = Nothing
 
 parseInterval :: CT.Value -> Maybe WatchInterval
 parseInterval (CT.List [CT.Number n, CT.String unit]) = Every <$> (pure . truncate $ n) 
-                                                              <*> txtToInterval unit
-  where txtToInterval "seconds" = Just Seconds -- duplicates Types FromJSON TimeUnit
-        txtToInterval "minutes" = Just Minutes
-        txtToInterval "hours"   = Just Hours
-        txtToInterval "days"    = Just Days
-        txtToInterval "weeks"   = Just Weeks
-        txtToInterval "years"   = Just Years
-        txtToInterval _         = Nothing
-parseInterval _                                      = Nothing
+                                                              <*> txtToTimeUnit unit
+parseInterval _                                       = Nothing

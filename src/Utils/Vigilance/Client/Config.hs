@@ -34,7 +34,7 @@ data Options = Options { optCommand :: Command
 instance Monoid Command where
   mempty = List
   List `mappend` b = b
-  a `mappend` List = a
+  a `mappend` _    = a
 
 instance Monoid Options where
   mempty = Options mempty defaultConfigPath

@@ -81,15 +81,19 @@ instance ToJSON TimeUnit where
   toJSON Weeks   = String "weeks"
   toJSON Years   = String "years"
 
+txtToTimeUnit :: Text -> Maybe TimeUnit
+txtToTimeUnit "seconds" = Just Seconds
+txtToTimeUnit "minutes" = Just Minutes
+txtToTimeUnit "hours"   = Just Hours
+txtToTimeUnit "days"    = Just Days
+txtToTimeUnit "weeks"   = Just Weeks
+txtToTimeUnit "years"   = Just Years
+txtToTimeUnit _         = Nothing
+
 instance FromJSON TimeUnit where
   parseJSON = withText "TimeUnit" parseTimeUnit
-    where parseTimeUnit "seconds" = pure Seconds
-          parseTimeUnit "minutes" = pure Minutes
-          parseTimeUnit "hours"   = pure Hours
-          parseTimeUnit "days"    = pure Days
-          parseTimeUnit "weeks"   = pure Weeks
-          parseTimeUnit "years"   = pure Years
-          parseTimeUnit _         = fail "Unknown time unit"
+    where parseTimeUnit txt = maybe unknown return $ txtToTimeUnit txt
+          unknown           = fail "unknown time unit"
 
 newtype EmailAddress = EmailAddress { _unEmailAddress :: Text } deriving ( Show
                                                                          , Eq
