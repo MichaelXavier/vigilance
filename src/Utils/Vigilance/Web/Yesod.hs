@@ -70,16 +70,15 @@ postCheckInWatchR = alwaysNoContent <=< bindM3 checkInWatchS getDb getPOSIXTime'
 
 --TODO: reflect failures in status
 postTestWatchR :: WatchName -> Handler Value
-postTestWatchR n = maybe notFound doTest =<< onWatch findWatchS n -- TODO: <=<
+postTestWatchR = maybe notFound doTest <=< onWatch findWatchS -- TODO: DRY up
   where doTest w = do notifiers <- configNotifiers <$> getConfig
                       db        <- getDb
                       inWebLogCtx $ sendNotificationsWithRetry db [w] notifiers
                       noContent
 
--- Must explicitly add Content-Length of 0 because http-streams hangs on an
--- HTTP 1.1 response with 204 and no explicit content length.
+-- http-streams currently hangs on this :(
 noContent :: Handler Value
-noContent = addHeader "Content-Length" "0" >> sendResponseStatus noContent204 ()
+noContent = sendResponseStatus noContent204 ()
 
 alwaysNoContent :: a -> Handler Value
 alwaysNoContent = const noContent
@@ -113,10 +112,6 @@ onWatchExists f n = maybe notFound goAhead =<< checkExistence
   where checkExistence = do db <- getDb
                             liftIO $ findWatchS db n
         goAhead        = const $ onWatch f n
---onWatchExists f n = db <- getDb
---                    watch <- liftIO $ findWatchS db n
---                    maybe notFound (on)
-
 
 getPOSIXTime' :: MonadIO m => m POSIXTime
 getPOSIXTime' = liftIO getPOSIXTime
