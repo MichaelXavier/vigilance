@@ -9,9 +9,8 @@ import Utils.Vigilance.Types
 
 
 expired :: POSIXTime -> Watch i -> Bool
-expired now w@Watch { _watchWState = Active lst } = beyondCutoff
+expired now w@Watch { _watchWState = Active lst } = now > cutoff
   where cutoff       = lst + interval
-        beyondCutoff = now > cutoff
         interval     = fromInteger $ secondsInterval (w ^. watchInterval)
 expired _ _                                        = False
 

@@ -147,7 +147,6 @@ sweepTable time = SS.map sweep
 getNotifying :: WatchTable -> [EWatch]
 getNotifying = map ewatch . S.lookup (sWatchWState .== Notifying)
 
-
 completeNotifying :: [WatchName] -> WatchTable -> WatchTable
 completeNotifying [] table  = table
 completeNotifying names table = SS.update' (Just . updateState) scope table
@@ -158,21 +157,19 @@ completeNotifying names table = SS.update' (Just . updateState) scope table
 
 mergeStaticWatches :: [NewWatch] -> WatchTable -> WatchTable
 mergeStaticWatches watches table = foldl' mergeWatchIn table watches
-  where mergeWatchIn table' staticW = case tryInsert of
-                                        Just (_, table'') -> table''
-                                        Nothing           -> forceUpdate
+  where mergeWatchIn table' staticW = fromMaybe forceUpdate tryInsert
           where forceUpdate = SS.update' (Just . mergeWatch)
                                          (sWatchName .== (staticW ^. watchName))
                                          table'
                 mergeWatch eWatch = eWatch & watchInterval      .~ (staticW ^. watchInterval)
                                            & watchNotifications .~ (staticW ^. watchNotifications)
-                tryInsert = SS.insert staticW table'
+                tryInsert = snd <$> SS.insert staticW table'
 
 emptyTable :: WatchTable
 emptyTable = S.empty
 
 fromList :: [NewWatch] -> WatchTable
-fromList = SS.fromList' --foldl' (\table w -> snd $ createWatch w table) emptyTable
+fromList = SS.fromList'
 
 -- ACID State
 allWatchesEvent :: Query AppState [EWatch]

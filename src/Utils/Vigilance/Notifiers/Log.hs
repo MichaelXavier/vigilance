@@ -8,7 +8,6 @@ import Control.Lens
 import Utils.Vigilance.Logger
 import Utils.Vigilance.Types
 
--- maybe error return type
 notify :: LogNotifier
 notify = LogNotifier notifierBody
   where notifierBody watches = renameLogCtx "Log Notifier" $ pushLogs formattedWatches >> return []

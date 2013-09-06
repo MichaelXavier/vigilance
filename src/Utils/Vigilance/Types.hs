@@ -38,7 +38,7 @@ import Yesod.Core.Dispatch (PathPiece)
 newtype ID = ID { _unID :: Int } deriving ( Show
                                           , Eq
                                           , Enum
-                                          , Read --testme, this is unlikely to go well. we don't want the quotes
+                                          , Read
                                           , PathPiece
                                           , Ord
                                           , Num
@@ -61,7 +61,9 @@ instance ToJSON WatchInterval where
   
 instance FromJSON WatchInterval where
   parseJSON = withArray "WatchInterval" $ parseWatchInterval . V.toList
-    where parseWatchInterval [Number (N.I n), s@(String _)] = Every <$> pure n <*> parseJSON s -- just get it out of the N.I and call pure?
+    where parseWatchInterval [Number (N.I n), s@(String _)]
+            | n > 0     = Every <$> pure n <*> parseJSON s -- just get it out of the N.I and call pure?
+            | otherwise = fail "interval must be > 0"
           parseWatchInterval _                              = fail "expecting a pair of integer and string"
 
 data TimeUnit = Seconds |

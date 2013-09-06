@@ -28,10 +28,8 @@ notify = HTTPNotifier notifierBody
 
 watchesWithNotifications :: [EWatch] -> [(EWatch, URL)]
 watchesWithNotifications = concatMap extractUrls
-  where extractUrls w = zip (repeat w :: [EWatch]) $ mapMaybe extractUrl $ w ^. watchNotifications
-        extractUrl (HTTPNotification u) = Just u
-        extractUrl _                    = Nothing
-
+  where extractUrls w = zip (repeat w :: [EWatch]) urls
+          where urls = [ u | HTTPNotification u <- w ^. watchNotifications]
 
 makeRequest :: EWatch -> URL -> LogCtxT IO (Maybe FailedNotification)
 makeRequest w url = do
@@ -48,7 +46,6 @@ makeRequest w url = do
         failedByException e = return . Just $ FailedNotification w notif (FailedByException $ show e) 0
         failedByCode code   = return . Just $ FailedNotification w notif (FailedByCode code) 0
         notif = HTTPNotification url
-        
 
 jsonBodyStream :: ToJSON a => a -> IO (S.OutputStream Builder -> IO ())
 jsonBodyStream = fmap inputStreamBody . S.fromLazyByteString . encode

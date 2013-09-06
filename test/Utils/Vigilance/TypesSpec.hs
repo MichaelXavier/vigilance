@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Utils.Vigilance.TypesSpec (spec) where
 
 import Test.QuickCheck.Property.Common.Internal (Equal) -- bah no
@@ -45,6 +46,14 @@ spec = parallel $ do
     prop "parses EWatch roundtrip" $
       property $ eq $ propJSONParsing (T :: T (EWatch))
 
+  describe "WatchInterval FromJSON" $ do
+    it "parses correct values" $ do
+      "[5, \"minutes\"]" `shouldParseJSON` Every 5 Minutes
+
+    it "refuses to parse 0 values" $
+      eitherDecode' "[0, \"minutes\"]" `shouldBe` (Left "interval must be > 0" :: Either String WatchInterval)
+    it "refuses to parse negative values" $
+      eitherDecode' "[-1, \"minutes\"]" `shouldBe` (Left "interval must be > 0" :: Either String WatchInterval)
 
 propJSONParsing :: (Show a, FromJSON a, ToJSON a) => T a -> a -> Equal (Either String a)
 propJSONParsing T x = parsed .==. Right x

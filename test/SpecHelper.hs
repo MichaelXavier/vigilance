@@ -18,12 +18,19 @@ module SpecHelper ( (<$>)
                   , NonEmptyList(..)
                   , Text
                   , UniqueWatches(..)
+                  , shouldParseJSON
+                  , shouldGenerateJSON
                   , module X) where
 
 import ClassyPrelude
 import Control.Applicative ( (<$>)
                            , (<*>)
                            , pure)
+import Data.Aeson ( FromJSON
+                  , eitherDecode'
+                  , ToJSON(toJSON)
+                  , Value )
+import qualified Data.ByteString.Lazy as LBS
 import Data.DeriveTH
 import Data.Derive.Arbitrary (makeArbitrary)
 import qualified Data.Set as S
@@ -73,10 +80,14 @@ genBS = encodeUtf8 . pack <$> genString
 instance Arbitrary URL where
   arbitrary = genBS
 
-$(derive makeArbitrary ''WatchState)
-$(derive makeArbitrary ''WatchInterval)
-$(derive makeArbitrary ''NotificationPreference)
 $(derive makeArbitrary ''TimeUnit)
+
+instance Arbitrary WatchInterval where
+  arbitrary = do Positive n <- arbitrary
+                 Every <$> pure n <*> arbitrary
+
+$(derive makeArbitrary ''WatchState)
+$(derive makeArbitrary ''NotificationPreference)
 $(derive makeArbitrary ''ID)
 $(derive makeArbitrary ''LogCfg)
 $(derive makeArbitrary ''Config)
@@ -110,3 +121,9 @@ newtype UniqueWatches = UniqueWatches [NewWatch]
 instance Arbitrary UniqueWatches where
   arbitrary = UniqueWatches . nubBy same <$> arbitrary
     where a `same` b = a ^. watchId == b ^. watchId && a ^. watchName == b ^. watchName
+
+shouldParseJSON :: (FromJSON a, Show a, Eq a) => LBS.ByteString -> a -> Expectation
+shouldParseJSON str obj = eitherDecode' str `shouldBe` Right obj
+
+shouldGenerateJSON :: (ToJSON a) => a -> Value -> Expectation
+shouldGenerateJSON x value = toJSON x `shouldBe` value
