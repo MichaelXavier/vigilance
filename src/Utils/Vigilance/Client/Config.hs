@@ -30,20 +30,6 @@ data Command = List              |
 data Options = Options { optCommand :: Command
                        , configPath :: FilePath } deriving (Show, Eq)
 
--- probably want to just trash these
-instance Monoid Command where
-  mempty = List
-  List `mappend` b = b
-  a `mappend` _    = a
-
-instance Monoid Options where
-  mempty = Options mempty defaultConfigPath
-  (Options ca pa) `mappend` (Options cb pb) = Options cmd pth
-    where cmd = ca <> cb
-          pth
-            | pb == defaultConfigPath = pa
-            | otherwise               = pb
-
 defaultConfigPath :: FilePath
 defaultConfigPath = "$(HOME)/.vigilance"
 
