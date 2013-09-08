@@ -83,26 +83,40 @@ getInfo :: WatchName -> ClientCtxT IO (VigilanceResponse EWatch)
 getInfo n = makeRequest GET (watchRoute n) emptyBody
 
 pause :: WatchName -> ClientCtxT IO (VigilanceResponse ())
-pause n = makeRequest POST (watchRoute n <> "/pause") emptyBody
+pause n = makeRequest_ POST (watchRoute n <> "/pause") emptyBody
 
 unPause :: WatchName -> ClientCtxT IO (VigilanceResponse ())
-unPause n = makeRequest POST (watchRoute n <> "/unpause") emptyBody
+unPause n = makeRequest_ POST (watchRoute n <> "/unpause") emptyBody
 
 checkIn :: WatchName -> ClientCtxT IO (VigilanceResponse ())
-checkIn n = makeRequest POST (watchRoute n <> "/checkin") emptyBody
+checkIn n = makeRequest_ POST (watchRoute n <> "/checkin") emptyBody
 
 test :: WatchName -> ClientCtxT IO (VigilanceResponse ())
-test n = makeRequest POST (watchRoute n <> "/test") emptyBody
+test n = makeRequest_ POST (watchRoute n <> "/test") emptyBody
 
 watchRoute :: WatchName -> ByteString
 watchRoute (WatchName n) = "/watches/" <> encodeUtf8 n
+
+
+makeRequest_ :: Method
+                -> ByteString
+                -> (S.OutputStream Builder -> IO b)
+                -> ClientCtxT IO (VigilanceResponse ())
+makeRequest_ = makeRequest' unitResponseHandler
 
 makeRequest :: FromJSON a
                => Method
                -> ByteString
                -> (S.OutputStream Builder -> IO b)
                -> ClientCtxT IO (VigilanceResponse a)
-makeRequest m p body = do
+makeRequest = makeRequest' jsonResponseHandler
+
+makeRequest':: (Response -> S.InputStream ByteString -> IO (VigilanceResponse a))
+               -> Method
+               -> ByteString
+               -> (S.OutputStream Builder -> IO b)
+               -> ClientCtxT IO (VigilanceResponse a)
+makeRequest' handler m p body = do
   host <- asks serverHost
   port <- asks serverPort
   lift $ withConnection (openConnection host port) $ \c -> do 
@@ -111,13 +125,24 @@ makeRequest m p body = do
               setAccept "application/json"
               setUserAgent defaultUserAgent
       void $ sendRequest c req body
-      receiveResponse c jsonResponseHandler
+      receiveResponse c handler
 
 setUserAgent :: ByteString -> RequestBuilder ()
 setUserAgent = setHeader "User-Agent"
 
 defaultUserAgent :: ByteString
 defaultUserAgent = "vigilance client"
+
+unitResponseHandler :: Response
+                       -> S.InputStream ByteString
+                       -> IO (VigilanceResponse ())
+unitResponseHandler resp _
+  | responseOk        = return . Right $ ()
+  | notFound          = return . Left $ NotFound 
+  | otherwise         = return . Left $ StatusError statusCode
+  where statusCode        = getStatusCode resp
+        responseOk        = inRange (200, 299) statusCode
+        notFound          = statusCode == 404
 
 --TODO: look at response and handle non-200
 jsonResponseHandler :: FromJSON a

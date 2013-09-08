@@ -76,7 +76,6 @@ postTestWatchR = maybe notFound doTest <=< onWatch findWatchS -- TODO: DRY up
                       inWebLogCtx $ sendNotificationsWithRetry db [w] notifiers
                       noContent
 
--- http-streams currently hangs on this :(
 noContent :: Handler Value
 noContent = sendResponseStatus noContent204 ()
 
