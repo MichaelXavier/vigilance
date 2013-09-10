@@ -24,7 +24,7 @@ import Utils.Vigilance.Config (configNotifiers)
 import Utils.Vigilance.Logger (runInLogCtx)
 import Utils.Vigilance.TableOps
 import Utils.Vigilance.Types
-import Utils.Vigilance.Workers.NotificationWorker (sendNotificationsWithRetry)
+import Utils.Vigilance.Workers.NotificationWorker (sendNotifications)
 import Utils.Vigilance.Utils ( bindM2
                              , bindM3 )
 
@@ -56,25 +56,25 @@ getWatchR :: WatchName -> Handler Value
 getWatchR =  jsonOrNotFound <=< onWatch findWatchS
 
 deleteWatchR :: WatchName -> Handler Value
-deleteWatchR = alwaysNoContent <=< onWatchExists deleteWatchS
+deleteWatchR name = onWatchExists deleteWatchS name >> noContent
 
 postPauseWatchR :: WatchName -> Handler Value
-postPauseWatchR = alwaysNoContent <=< onWatchExists pauseWatchS
+postPauseWatchR name = onWatchExists pauseWatchS name >> noContent
 
---TODO; handle these with 404s
 postUnPauseWatchR :: WatchName -> Handler Value
-postUnPauseWatchR = alwaysNoContent <=< bindM3 unPauseWatchS getDb getPOSIXTime' . return
+postUnPauseWatchR name = onWatchExists unPause name >> noContent
+  where unPause db n = liftIO $ bindM3 unPauseWatchS (return db) getPOSIXTime (return n)
 
 postCheckInWatchR :: WatchName -> Handler Value
-postCheckInWatchR = alwaysNoContent <=< bindM3 checkInWatchS getDb getPOSIXTime' . return
+postCheckInWatchR name = onWatchExists checkIn name >> noContent
+  where checkIn db n = liftIO $ bindM3 checkInWatchS (return db) getPOSIXTime (return n)
 
 --TODO: reflect failures in status
 postTestWatchR :: WatchName -> Handler Value
 postTestWatchR = maybe notFound doTest <=< onWatch findWatchS -- TODO: DRY up
   where doTest w = do notifiers <- configNotifiers <$> getConfig
                       db        <- getDb
-                      inWebLogCtx $ sendNotificationsWithRetry db [w] notifiers
-                      noContent
+                      returnJson =<< inWebLogCtx $ sendNotifications db [w] notifiers
 
 noContent :: Handler Value
 noContent = sendResponseStatus noContent204 ()

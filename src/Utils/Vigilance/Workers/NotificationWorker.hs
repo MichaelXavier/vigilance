@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 module Utils.Vigilance.Workers.NotificationWorker ( runWorker
+                                                  , sendNotifications
                                                   , sendNotificationsWithRetry) where
 
 import ClassyPrelude

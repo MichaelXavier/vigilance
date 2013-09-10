@@ -91,8 +91,8 @@ unPause n = makeRequest_ POST (watchRoute n <> "/unpause") emptyBody
 checkIn :: WatchName -> ClientCtxT IO (VigilanceResponse ())
 checkIn n = makeRequest_ POST (watchRoute n <> "/checkin") emptyBody
 
-test :: WatchName -> ClientCtxT IO (VigilanceResponse ())
-test n = makeRequest_ POST (watchRoute n <> "/test") emptyBody
+test :: WatchName -> ClientCtxT IO (VigilanceResponse [FailedNotification])
+test n = makeRequest POST (watchRoute n <> "/test") emptyBody
 
 watchRoute :: WatchName -> ByteString
 watchRoute (WatchName n) = "/watches/" <> encodeUtf8 n
@@ -144,7 +144,6 @@ unitResponseHandler resp _
         responseOk        = inRange (200, 299) statusCode
         notFound          = statusCode == 404
 
---TODO: look at response and handle non-200
 jsonResponseHandler :: FromJSON a
                        => Response
                        -> S.InputStream ByteString

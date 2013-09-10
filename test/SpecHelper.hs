@@ -112,6 +112,9 @@ instance Arbitrary WatchName where
 instance Arbitrary EmailAddress where
   arbitrary = EmailAddress <$> genText
 
+instance Arbitrary NotificationError where
+  arbitrary = oneof [FailedByException <$> genText, FailedByCode <$> arbitrary]
+
 genText :: Gen Text
 genText = pack <$> genString
 

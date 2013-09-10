@@ -41,10 +41,13 @@ spec = parallel $ do
 
   describe "json parsing" $ do
     prop "parses NewWatch roundtrip" $
-      property $ eq $ propJSONParsing (T :: T (NewWatch))
+      property $ eq $ propJSONParsing (T :: T NewWatch)
 
     prop "parses EWatch roundtrip" $
-      property $ eq $ propJSONParsing (T :: T (EWatch))
+      property $ eq $ propJSONParsing (T :: T EWatch)
+
+    prop "parses NotificationError roundtrip" $
+      property $ eq $ propJSONParsing (T :: T NotificationError)
 
   describe "WatchInterval FromJSON" $ do
     it "parses correct values" $ do
