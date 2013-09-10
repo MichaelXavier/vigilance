@@ -22,12 +22,12 @@ runOptions :: Options -> IO ()
 runOptions Options {..} = runReaderT (runCommand optCommand) =<< readClientConfig configPath
 
 runCommand :: Command -> ClientCtxT IO ()
-runCommand List        = withErrorHandling displayList        getList
-runCommand (Pause n)   = withErrorHandling doNothing        $ pause n
-runCommand (UnPause n) = withErrorHandling doNothing        $ unPause n
-runCommand (CheckIn n) = withErrorHandling doNothing        $ checkIn n
-runCommand (Info n)    = withErrorHandling displayWatchInfo $ getInfo n
-runCommand (Test n)    = withErrorHandling doNothing        $ test n
+runCommand List        = withErrorHandling displayList                 getList
+runCommand (Pause n)   = withErrorHandling doNothing                 $ pause n
+runCommand (UnPause n) = withErrorHandling doNothing                 $ unPause n
+runCommand (CheckIn n) = withErrorHandling doNothing                 $ checkIn n
+runCommand (Info n)    = withErrorHandling displayWatchInfo          $ getInfo n
+runCommand (Test n)    = withErrorHandling displayNotificationErrors $ test n
 
 doNothing :: a -> IO ()
 doNothing = const $ return ()

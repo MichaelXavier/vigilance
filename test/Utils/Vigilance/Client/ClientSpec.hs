@@ -19,6 +19,10 @@ spec = parallel $ do
     it "renders the full watch info" $
       renderWatchInfo fullWatch `shouldBe` fullWatchText
 
+  describe "renderNotificationErrors" $ do
+    it "renders a message with no errors" $ pending
+    it "renders a line for each error" $ pending
+
 
 fullWatch :: EWatch
 fullWatch = baseWatch { _watchWState = Active 12345

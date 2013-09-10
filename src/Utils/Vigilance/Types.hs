@@ -7,6 +7,7 @@
 {-# LANGUAGE NoImplicitPrelude          #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE QuasiQuotes                #-}
+{-# LANGUAGE RecordWildCards            #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
@@ -266,6 +267,19 @@ data FailedNotification = FailedNotification { _failedWatch     :: EWatch
                                              , _failedPref      :: NotificationPreference
                                              , _failedLastError :: NotificationError
                                              , _retries         :: Int } deriving (Typeable, Show, Eq)
+
+instance ToJSON FailedNotification where
+  toJSON FailedNotification{..} = object [ "failed_watch"        .= _failedWatch
+                                         , "failed_notification" .= _failedPref
+                                         , "last_error"          .= _failedLastError
+                                         , "retries"             .= _retries ]
+
+instance FromJSON FailedNotification where
+  parseJSON = withObject "FailedNotification" parseFailedNotification
+    where parseFailedNotification obj = FailedNotification <$> obj .: "failed_watch"
+                                                           <*> obj .: "failed_notification"
+                                                           <*> obj .: "last_error"
+                                                           <*> obj .: "retries"
 
 makeClassy ''FailedNotification
 

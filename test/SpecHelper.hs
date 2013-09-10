@@ -86,11 +86,19 @@ instance Arbitrary WatchInterval where
   arbitrary = do Positive n <- arbitrary
                  Every <$> pure n <*> arbitrary
 
+genText :: Gen Text
+genText = pack <$> genString
+
+-- Dubious typesafety here
+instance Arbitrary NotificationError where
+  arbitrary = oneof [FailedByException <$> genText, FailedByCode <$> arbitrary]
+
 $(derive makeArbitrary ''WatchState)
 $(derive makeArbitrary ''NotificationPreference)
 $(derive makeArbitrary ''ID)
 $(derive makeArbitrary ''LogCfg)
 $(derive makeArbitrary ''Config)
+$(derive makeArbitrary ''FailedNotification)
 
 instance Arbitrary NewWatch where
   arbitrary = Watch <$> pure ()
@@ -111,12 +119,6 @@ instance Arbitrary WatchName where
 
 instance Arbitrary EmailAddress where
   arbitrary = EmailAddress <$> genText
-
-instance Arbitrary NotificationError where
-  arbitrary = oneof [FailedByException <$> genText, FailedByCode <$> arbitrary]
-
-genText :: Gen Text
-genText = pack <$> genString
 
 newtype UniqueWatches = UniqueWatches [NewWatch]
  deriving ( Eq, Ord, Show)

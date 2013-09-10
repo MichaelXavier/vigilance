@@ -14,6 +14,7 @@ module Utils.Vigilance.Client.Client ( getList
                                      , renderList
                                      , renderWatch
                                      , renderWatchInfo
+                                     , renderNotificationErrors
                                      , VError(..) ) where
 
 import ClassyPrelude
@@ -53,6 +54,13 @@ renderWatch w = [qc|{name} ({i}) - {interval} - {state}|]
 
 displayWatchInfo :: EWatch -> IO ()
 displayWatchInfo = putStrLn . renderWatchInfo
+
+displayNotificationErrors :: [FailedNotification] -> IO ()
+displayNotificationErrors = putStrLn . renderNotificationErrors
+
+--TODO
+renderNotificationErrors :: [FailedNotification] -> Text
+renderNotificationErrors = undefined
 
 renderWatchInfo :: EWatch -> Text
 renderWatchInfo w = [qc|{renderedWatch}

@@ -46,6 +46,9 @@ spec = parallel $ do
     prop "parses EWatch roundtrip" $
       property $ eq $ propJSONParsing (T :: T EWatch)
 
+    prop "parses FailedNotification roundtrip" $
+      property $ eq $ propJSONParsing (T :: T FailedNotification)
+
     prop "parses NotificationError roundtrip" $
       property $ eq $ propJSONParsing (T :: T NotificationError)
 
