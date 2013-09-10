@@ -73,8 +73,7 @@ postCheckInWatchR name = onWatchExists checkIn name >> noContent
 postTestWatchR :: WatchName -> Handler Value
 postTestWatchR = maybe notFound doTest <=< onWatch findWatchS -- TODO: DRY up
   where doTest w = do notifiers <- configNotifiers <$> getConfig
-                      db        <- getDb
-                      returnJson =<< inWebLogCtx $ sendNotifications db [w] notifiers
+                      returnJson =<< inWebLogCtx $ sendNotifications [w] notifiers
 
 noContent :: Handler Value
 noContent = sendResponseStatus noContent204 ()

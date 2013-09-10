@@ -6,6 +6,7 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE NoImplicitPrelude          #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE QuasiQuotes                #-}
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
@@ -33,6 +34,7 @@ import qualified Data.Vector as V
 import Network.Http.Client ( URL
                            , StatusCode )
 import System.Log.FastLogger ( ToLogStr(..) )
+import Text.InterpolatedString.Perl6 (qc)
 import Yesod.Core.Dispatch (PathPiece)
 
 newtype ID = ID { _unID :: Int } deriving ( Show
@@ -242,6 +244,23 @@ type WatchTable = Store WatchStoreTag (StoreKRS NewWatch) (StoreIRS NewWatch) (S
 
 data NotificationError = FailedByCode StatusCode |
                          FailedByException Text deriving (Eq, Show, Typeable)
+
+instance ToJSON NotificationError where
+  toJSON (FailedByCode c) = object [ "error"       .= String "code_error"
+                                   , "status_code" .= c
+                                   , "message"     .= String [qc|Failed with status code {c}|] ]
+  toJSON (FailedByException e) = object [ "error"     .= String "exception"
+                                        , "exception" .= e
+                                        , "message"   .= String [qc|Failed with exception {e}|] ]
+
+instance FromJSON NotificationError where
+  parseJSON = withObject "NotificationError" parseNotificationError
+    where parseNotificationError obj = do
+            err <- obj .: "error"
+            case err of
+              String "code_error" -> FailedByCode      <$> obj .: "status_code"
+              String "exception"  -> FailedByException <$> obj .: "exception"
+              _                   -> mzero
 
 data FailedNotification = FailedNotification { _failedWatch     :: EWatch
                                              , _failedPref      :: NotificationPreference
