@@ -10,11 +10,12 @@ module Utils.Vigilance.Client.Client ( getList
                                      , displayList
                                      , displayWatch
                                      , displayWatchInfo
+                                     , displayFailedNotifications
                                      -- for testing
                                      , renderList
                                      , renderWatch
                                      , renderWatchInfo
-                                     , renderNotificationErrors
+                                     , renderFailedNotifications
                                      , VError(..) ) where
 
 import ClassyPrelude
@@ -55,12 +56,27 @@ renderWatch w = [qc|{name} ({i}) - {interval} - {state}|]
 displayWatchInfo :: EWatch -> IO ()
 displayWatchInfo = putStrLn . renderWatchInfo
 
-displayNotificationErrors :: [FailedNotification] -> IO ()
-displayNotificationErrors = putStrLn . renderNotificationErrors
+displayFailedNotifications :: [FailedNotification] -> IO ()
+displayFailedNotifications = putStrLn . renderFailedNotifications
 
 --TODO
-renderNotificationErrors :: [FailedNotification] -> Text
-renderNotificationErrors = undefined
+renderFailedNotifications :: [FailedNotification] -> Text
+renderFailedNotifications []  = "All notifications sent successfully."
+renderFailedNotifications fns = unlines' . (header:) . map render $ fns
+  where header = "The following errors were encountered when testing:"
+        render fn = [qc|- {pref} for {wn} ({wid}): {err}|]
+          where pref = fn ^. failedPref . to renderNotificationPref
+                wn   = fn ^. failedWatch . watchName . unWatchName
+                wid  = fn ^. failedWatch . watchId . unID
+                err  = fn ^. failedLastError . to renderNotificationError
+
+renderNotificationPref :: NotificationPreference -> Text
+renderNotificationPref (HTTPNotification u)                 = [qc|HTTP Notification ({u})|]
+renderNotificationPref (EmailNotification (EmailAddress a)) = [qc|Email Notification ({a})|]
+
+renderNotificationError :: NotificationError -> Text
+renderNotificationError (FailedByCode c)      = [qc|Failed with status code {c}|]
+renderNotificationError (FailedByException e) = [qc|Failed with exception "{e}"|]
 
 renderWatchInfo :: EWatch -> Text
 renderWatchInfo w = [qc|{renderedWatch}

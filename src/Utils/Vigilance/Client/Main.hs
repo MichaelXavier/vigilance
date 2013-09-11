@@ -9,7 +9,8 @@ import Control.Monad.Trans.Reader (runReaderT)
 import Options.Applicative
 import Options.Applicative.Builder.Internal ( CommandFields
                                             , Mod )
-import System.Exit (exitFailure)
+import System.Exit ( exitSuccess
+                   , exitFailure)
 
 import Utils.Vigilance.Client.Client
 import Utils.Vigilance.Client.Config
@@ -22,12 +23,18 @@ runOptions :: Options -> IO ()
 runOptions Options {..} = runReaderT (runCommand optCommand) =<< readClientConfig configPath
 
 runCommand :: Command -> ClientCtxT IO ()
-runCommand List        = withErrorHandling displayList                 getList
-runCommand (Pause n)   = withErrorHandling doNothing                 $ pause n
-runCommand (UnPause n) = withErrorHandling doNothing                 $ unPause n
-runCommand (CheckIn n) = withErrorHandling doNothing                 $ checkIn n
-runCommand (Info n)    = withErrorHandling displayWatchInfo          $ getInfo n
-runCommand (Test n)    = withErrorHandling displayNotificationErrors $ test n
+runCommand List        = withErrorHandling displayList                  getList
+runCommand (Pause n)   = withErrorHandling doNothing                  $ pause n
+runCommand (UnPause n) = withErrorHandling doNothing                  $ unPause n
+runCommand (CheckIn n) = withErrorHandling doNothing                  $ checkIn n
+runCommand (Info n)    = withErrorHandling displayWatchInfo           $ getInfo n
+runCommand (Test n)    = withErrorHandling handleTestResults          $ test n
+
+handleTestResults :: [FailedNotification] -> IO ()
+handleTestResults failures = do displayFailedNotifications failures
+                                if null failures
+                                  then exitSuccess
+                                  else exitFailure
 
 doNothing :: a -> IO ()
 doNothing = const $ return ()
