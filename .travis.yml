@@ -3,7 +3,7 @@ before_install:
   # Uncomment whenever hackage is down.
   # - mkdir -p ~/.cabal && cp travis/config ~/.cabal/config && cabal update
   - cabal update
-  - cabal install --enable-tests --only-dependencies
+  - cabal install --enable-tests --only-dependencies --force-reinstalls
 
 install:
   - cabal configure -flib-Werror $mode
