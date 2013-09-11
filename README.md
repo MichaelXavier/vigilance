@@ -8,6 +8,28 @@ your periodical tasks, whatever they are, to report to vigilance via a simple
 HTTP POST. You can then configure notifications that will fire when a watch
 fails to check in.
 
+# Concepts
+A *watch* is a named task that you expect to happen periodically. Watches can
+be in several states:
+
+* *Active* - The clock is ticking but this watch has not yet triggered.
+* *Paused* - The clock is not ticking. **Watches start out in this state.**
+  That means that you must unpause the watch to start monitoring this. I
+  thought about automatically unpausing on checkin but that would mean to pause
+  notification you'd have to eliminate all checkins.
+* *Notifying* - The watch has failed to check in and will notify soon.
+* *Triggered* - The watch has failed to check in and has notified. It will not
+  notify until it is dealt with, either by pausing, checkin in on removal.
+
+Watches are configured in the server's config file and/or via the REST API. The
+configuration file can be reloaded to account for changes in watches.
+
+Watches can be configured with multiple *notifications* to fire when the watch
+fails to check in. Right now the supported notification options are:
+
+* Email
+* HTTP POST
+
 # vigilance-server
 vigilance-server is the server component of vigilance. It is responsible for
 tracking what watches there are, their state, notifications, etc.
@@ -79,7 +101,7 @@ The following values are defaulted if not supplied by the config:
 6. `vigilance.log.path` - log/vigilance.log
 7. `vigilance.watches` - none
 
-## API
+## REST API
 
 # Vigilance Client
 Vigilance Client is available under the `vigilance` binary. It allows you to
@@ -125,7 +147,7 @@ pause foo`.
 
 ## Status
 Currently unreleased and under active development, but I'm getting close. See
-`TODO` for some notes on what I need to do.
+`TODO.md` for some notes on what I need to do.
 
 ## License
 Vigilance is released under the MIT license. See the `LICENSE` file for more
