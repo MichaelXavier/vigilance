@@ -228,6 +228,9 @@ spec = parallel $ do
           names = map (view $ failedWatch . watchName) fns'
       in not $ elem name names
 
+  describe "deleteWatchEvent" $ do
+    it "clears watches and failed notifications by name" $ pending
+
   where insert = CreateWatchEvent
         delete = DeleteWatchEvent . view watchName
         find   = FindWatchEvent . view watchName

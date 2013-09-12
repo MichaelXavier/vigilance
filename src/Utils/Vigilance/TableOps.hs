@@ -194,7 +194,8 @@ createWatchEvent :: NewWatch -> Update AppState EWatch
 createWatchEvent w = wTable %%= createWatch w
 
 deleteWatchEvent :: WatchName -> Update AppState ()
-deleteWatchEvent i = wTable %= deleteWatch i
+deleteWatchEvent n = wTable %= deleteWatch n >>
+                      failed %= deleteFailedByWatch n
 
 findWatchEvent :: WatchName -> Query AppState (Maybe EWatch)
 findWatchEvent i = view (wTable . findWatch')
