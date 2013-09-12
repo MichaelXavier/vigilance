@@ -17,6 +17,8 @@ module Utils.Vigilance.TableOps ( allWatches
                                 , deleteWatchEvent
                                 , DeleteWatchEvent(..)
                                 , deleteWatchS
+                                , deleteFailedByWatch
+                                , deleteExcept
                                 , findWatch
                                 , findWatchEvent
                                 , FindWatchEvent(..)
@@ -118,7 +120,12 @@ createWatch w s = (w & watchId .~ getId k, s')
 deleteWatch :: WatchName -> WatchTable -> WatchTable
 deleteWatch n = S.delete (sWatchName .== n)
 
+deleteFailedByWatch :: WatchName -> [FailedNotification] -> [FailedNotification]
+deleteFailedByWatch n = filter ((/=n) . getName)
+  where getName = view $ failedWatch . watchName
+
 deleteExcept :: [WatchName] -> WatchTable -> WatchTable
+deleteExcept [] = id
 deleteExcept names = S.delete nameScope
   where nameScope = SEL.all $ map (sWatchName ./=) names
 

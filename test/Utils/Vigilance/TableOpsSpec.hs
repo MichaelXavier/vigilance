@@ -7,6 +7,7 @@ import ClassyPrelude hiding (toList, fromList)
 import Control.Monad.State
 import Data.Acid.Memory.Pure
 import qualified Data.Store as S
+import qualified Data.List as L
 import Data.Store (toList,  (.==), size, elements)
 import Data.Store.Lens (with)
 import Utils.Vigilance.TableOps
@@ -207,6 +208,25 @@ spec = parallel $ do
           w''         = findWatch (w' ^. watchName) table'
           state'      = _watchWState <$> w''
       in state' `shouldBe` Just Notifying
+
+  describe "deleteExcept" $ do
+    prop "it deletes nothing when an empty list is given" $ \watches ->
+      let table = fromList watches
+      in deleteExcept [] table `equalsTable` table
+
+    prop "deletes all but the specified" $ \(NonEmpty watches@(targetWatch:_)) ->
+      let table        = fromList watches
+          target       = targetWatch ^. watchName
+          table'       = deleteExcept [target] table
+          allNames'    = tableNames table'
+      in allNames' `shouldBe` [target]
+
+  describe "deleteFailedByWatch" $ do
+    prop "only deletes failed watch notifications matching the name" $ \(NonEmpty fns@(target:_)) ->
+      let name  = target ^. failedWatch . watchName
+          fns'  = deleteFailedByWatch name fns
+          names = map (view $ failedWatch . watchName) fns'
+      in not $ elem name names
 
   where insert = CreateWatchEvent
         delete = DeleteWatchEvent . view watchName

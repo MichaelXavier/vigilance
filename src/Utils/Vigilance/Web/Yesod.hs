@@ -42,7 +42,7 @@ mkYesod "WebApp" [parseRoutes|
   /watches/#WatchName/pause   PauseWatchR   POST
   /watches/#WatchName/unpause UnPauseWatchR POST
   /watches/#WatchName/checkin CheckInWatchR POST
-  /watches/#WatchName/test    TestWatchR POST
+  /watches/#WatchName/test    TestWatchR    POST
 |]
 
 getWatchesR :: Handler Value
