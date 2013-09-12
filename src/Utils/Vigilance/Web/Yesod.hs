@@ -25,8 +25,7 @@ import Utils.Vigilance.Logger (runInLogCtx)
 import Utils.Vigilance.TableOps
 import Utils.Vigilance.Types
 import Utils.Vigilance.Workers.NotificationWorker (sendNotifications)
-import Utils.Vigilance.Utils ( bindM2
-                             , bindM3 )
+import Utils.Vigilance.Utils (bindM3)
 
 data WebApp = WebApp { _acid    :: AcidState AppState
                      , _cfg     :: Config
@@ -38,7 +37,7 @@ instance Yesod WebApp where
   makeSessionBackend = const $ return Nothing
 
 mkYesod "WebApp" [parseRoutes|
-  /watches                    WatchesR      GET POST
+  /watches                    WatchesR      GET
   /watches/#WatchName         WatchR        GET DELETE
   /watches/#WatchName/pause   PauseWatchR   POST
   /watches/#WatchName/unpause UnPauseWatchR POST
@@ -48,9 +47,6 @@ mkYesod "WebApp" [parseRoutes|
 
 getWatchesR :: Handler Value
 getWatchesR = returnJson =<< allWatchesS =<< getDb
-
-postWatchesR :: Handler Value
-postWatchesR = returnJson =<< bindM2 createWatchS getDb parseJsonBody_
 
 getWatchR :: WatchName -> Handler Value
 getWatchR =  jsonOrNotFound <=< onWatch findWatchS

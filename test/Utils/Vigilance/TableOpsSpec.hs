@@ -129,9 +129,9 @@ spec = parallel $ do
       in getNotifying table' == []
 
   describe "mergeStaticWatches" $ do
-    prop "no watches to merge does not modify anything" $ \watches ->
-      let table = fromList watches
-      in mergeStaticWatches [] table `equalsTable` table
+    prop "no watches to merge clears the table" $ \watches ->
+      let table = mergeStaticWatches [] $ fromList watches
+      in S.size table `shouldBe` 0
 
     prop "it only updates watchInterval and watchNotifications" $ \(UniqueWatches watches) targetWatch wInterval' wState' notifications' ->
       let table = fromList (watches ++ [targetWatch])
@@ -139,22 +139,20 @@ spec = parallel $ do
           table' = mergeStaticWatches [targetWatch'] table
           expectedResult   = targetWatch { _watchInterval = wInterval', _watchNotifications = notifications' }
           resultingWatches = table' ^. with (sWatchName .== (targetWatch' ^. watchName)) . to elements
-      in if resultingWatches == [expectedResult]
-           then True
-           else traceShow ("WAT", resultingWatches, [expectedResult]) $ False
+      in (map removeId $ allWatches table') == [expectedResult]
 
-    prop "it inserts new watches" $ \(UniqueWatches existing) (UniqueWatches newWatches) ->
-      let table      = fromList existing
-          newNames   = sort $ map (view watchName) newWatches
-          table'     = mergeStaticWatches newWatches table
-          newInTable = sort $ map (view watchName . snd) $ concatMap (\n -> S.lookup (sWatchName .== n) table') newNames
-      in newInTable == newNames
+    prop "leaves only the targeted watches" $ \(UniqueWatches existing) (UniqueWatches newWatches) ->
+      let table        = fromList existing
+          newNames     = sort $ map (view watchName) newWatches
+          table'       = mergeStaticWatches newWatches table
+          namesInTable = sort $ map (view watchName . removeId) $ allWatches table'
+      in namesInTable == newNames
 
-    it "retains state watch state on new watches" $
+    it "retains watch state on new watches" $
       let table       = fromList []
           table'      = mergeStaticWatches [baseNewWatch { _watchWState = Triggered }] table
-          newWatchStates = map (view watchWState . snd) $ S.lookup (sWatchName .== (baseNewWatch ^. watchName)) table'
-      in all (== Triggered) newWatchStates
+          newWatchStates = map (view watchWState . removeId) $ allWatches table'
+      in newWatchStates == [Triggered]
 
   --TODO: just use the createWatchS and the like here instead?
   describe "acid events" $ do

@@ -11,7 +11,6 @@ still around. oh well.
 * documentation of config stuff
 * make web server a flag, default to true
 * make state directory more absolute. relative doesn't make sense
-* ensure removed static watches get the boot
 
 Issues
 * race condition with exit causes process to exit before logs flush. maybe a
@@ -20,3 +19,4 @@ Issues
   sure there's a combinator for it.
 * see if config reload can spawn the email worker
 * see if retry count cant be reloaded
+* need to drop FailedNotifications when watches deleted or merged

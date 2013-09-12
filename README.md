@@ -21,8 +21,9 @@ be in several states:
 * *Triggered* - The watch has failed to check in and has notified. It will not
   notify until it is dealt with, either by pausing, checkin in on removal.
 
-Watches are configured in the server's config file and/or via the REST API. The
-configuration file can be reloaded to account for changes in watches.
+Watches are configured in the server's config file and managed via the rest API
+or the vigilance client. The configuration file can be reloaded to account for
+changes/additions/removals of watches.
 
 Watches can be configured with multiple *notifications* to fire when the watch
 fails to check in. Right now the supported notification options are:

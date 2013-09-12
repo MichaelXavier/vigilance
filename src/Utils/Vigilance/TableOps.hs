@@ -74,7 +74,7 @@ import Data.Acid
 import Data.Acid.Advanced (update', query')
 import Data.List (foldl')
 import Data.Store.Lens (with)
-import           Data.Store ((.==), (:.)(..), (.&&))
+import           Data.Store ((.==), (:.)(..), (.&&), (./=))
 import qualified Data.Store as S
 import qualified Data.Store.Storable as SS
 import qualified Data.Store.Selection as SEL
@@ -118,6 +118,10 @@ createWatch w s = (w & watchId .~ getId k, s')
 deleteWatch :: WatchName -> WatchTable -> WatchTable
 deleteWatch n = S.delete (sWatchName .== n)
 
+deleteExcept :: [WatchName] -> WatchTable -> WatchTable
+deleteExcept names = S.delete nameScope
+  where nameScope = SEL.all $ map (sWatchName ./=) names
+
 findWatch :: WatchName -> WatchTable -> Maybe EWatch
 findWatch n = listToMaybe . map ewatch . S.lookup (sWatchName .== n)
 
@@ -156,8 +160,12 @@ completeNotifying names table = SS.update' (Just . updateState) scope table
         isNotifyingScope = sWatchWState .== Notifying
 
 mergeStaticWatches :: [NewWatch] -> WatchTable -> WatchTable
-mergeStaticWatches watches table = foldl' mergeWatchIn table watches
-  where mergeWatchIn table' staticW = fromMaybe forceUpdate tryInsert
+mergeStaticWatches []      = const emptyTable
+mergeStaticWatches watches = mergeWatches . removeUnMentioned
+  where removeUnMentioned           = deleteExcept names
+        names                       = map (view watchName) watches
+        mergeWatches table          = foldl' mergeWatchIn table watches
+        mergeWatchIn table' staticW = fromMaybe forceUpdate tryInsert
           where forceUpdate = SS.update' (Just . mergeWatch)
                                          (sWatchName .== (staticW ^. watchName))
                                          table'
