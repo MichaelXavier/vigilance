@@ -20,4 +20,3 @@ Issues
 * see if config reload can spawn the email worker
 * see if retry count cant be reloaded
 * redirect server ogs to log worker
-* do not require config file for client

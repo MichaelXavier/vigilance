@@ -13,7 +13,7 @@ import Prelude (FilePath)
 import ClassyPrelude hiding (FilePath)
 import Control.Monad ((<=<))
 import Control.Monad.Trans.Reader
-import Data.Configurator (load, Worth(Required))
+import Data.Configurator (load, Worth(Optional))
 import qualified Data.Configurator as C
 import qualified Data.Configurator.Types as CT
 import Network.Http.Client ( Hostname
@@ -48,7 +48,7 @@ readClientConfig :: FilePath -> IO ClientConfig
 readClientConfig = convertClientConfig <=< loadConfig
 
 loadConfig :: FilePath -> IO CT.Config
-loadConfig pth = load [Required pth]
+loadConfig pth = load [Optional pth]
 
 --TODO: elimiate toplevel in config
 convertClientConfig :: CT.Config -> IO ClientConfig
