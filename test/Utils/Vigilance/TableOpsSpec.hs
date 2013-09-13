@@ -34,7 +34,7 @@ spec = parallel $ do
   describe "allWatches" $ do
     prop "it returns the contents of the table only" $ \(UniqueWatches watches) ->
       let table  = fromList watches
-      in (map removeId $ allWatches table) == watches
+      in map removeId (allWatches table) == watches
   describe "pauseWatch" $ do
     prop "it sets the state and nothing else" $ \w ->
       let (w', table) = createWatch w emptyTable
@@ -76,7 +76,7 @@ spec = parallel $ do
       let fixState Notifying = Paused
           fixState x         = x
           table              = fromList $ map (\w -> w & watchWState %~ fixState) watches
-      in getNotifying table == []
+      in null $ getNotifying table
 
     prop "returns only the notifying events" $ \(UniqueWatches watches) ->
       let fixState Notifying = Paused
@@ -87,7 +87,7 @@ spec = parallel $ do
           notifying          = [aNotifying & watchName .~ "foo", aNotifying & watchName .~ "bar"]
           table              = fromList $ shuffleIn notNotifying notifying
           result             = getNotifying table
-      in (map removeId result) == notifying
+      in map removeId result == notifying
 
     it "is queryable after notifying" $
       let watches = [Watch {_watchId = (), _watchName = "foo", _watchInterval = Every 2 Seconds, _watchWState = Active 123, _watchNotifications = []}]
@@ -103,7 +103,7 @@ spec = parallel $ do
     prop "it does nothing when given bogus ids" $ \(UniqueWatches watches) names ->
       let watches'   = take 10 watches
           table      = fromList watches' :: WatchTable
-          bogusNames = (nub names) \\ (map _watchName watches')
+          bogusNames = nub names \\ (map _watchName watches')
           table'     = completeNotifying bogusNames table :: WatchTable
       in table' `equalsTable` table
 
@@ -189,6 +189,20 @@ spec = parallel $ do
             fns    = query acid'' AllFailedNotificationsEvent
         in fns `shouldBe` []
 
+    describe "deleteWatchEvent" $ do
+      it "clears watches and failed notifications by name" $
+        -- dear lord, add the state monad
+        let watch   = baseNewWatch
+            watch2  = baseNewWatch & watchName .~ (WatchName "bogus")
+            fn2     = baseFN & failedWatch .~ (watch2 & watchId .~ ID 1)
+            acid1   = update_ acid  $ SetFailedNotificationsEvent [baseFN & failedWatch .~ (watch & watchId .~ ID 0), fn2]
+            acid2   = update_ acid1 $ CreateWatchEvent watch
+            acid3   = update_ acid2 $ CreateWatchEvent watch2
+            acid4   = update_ acid3 $ DeleteWatchEvent $ watch ^. watchName
+            fns     = query acid4 AllFailedNotificationsEvent
+            watches = map removeId $ query acid4 AllWatchesEvent
+        in (fns, watches) `shouldBe` ([fn2], [watch2])
+
   describe "sweepTable" $ do
     prop "does not reduce or increase the size of the table" $ \(UniqueWatches watches) t ->
       let table = fromList watches
@@ -227,9 +241,6 @@ spec = parallel $ do
           fns'  = deleteFailedByWatch name fns
           names = map (view $ failedWatch . watchName) fns'
       in not $ elem name names
-
-  describe "deleteWatchEvent" $ do
-    it "clears watches and failed notifications by name" $ pending
 
   where insert = CreateWatchEvent
         delete = DeleteWatchEvent . view watchName
