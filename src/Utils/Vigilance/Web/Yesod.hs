@@ -21,11 +21,19 @@ import Network.HTTP.Types.Status (noContent204)
 import Yesod
 
 import Utils.Vigilance.Config (configNotifiers)
-import Utils.Vigilance.Logger (runInLogCtx)
+import Utils.Vigilance.Logger ( runInLogCtx
+                              , vLogs )
 import Utils.Vigilance.TableOps
 import Utils.Vigilance.Types
 import Utils.Vigilance.Workers.NotificationWorker (sendNotifications)
 import Utils.Vigilance.Utils (bindM3)
+
+-- cargo culted imports I want to drop
+import qualified Data.Text as T
+import System.Log.FastLogger (LogStr(..), loggerDate)
+import System.Log.FastLogger.Date (ZonedDate)
+import Language.Haskell.TH.Syntax (Loc (..))
+import Control.Monad.Logger (LogSource)
 
 data WebApp = WebApp { _acid    :: AcidState AppState
                      , _cfg     :: Config
@@ -33,8 +41,56 @@ data WebApp = WebApp { _acid    :: AcidState AppState
 
 makeClassy ''WebApp
 
+logCtxName :: Text
+logCtxName = "Web"
+
+-- stolen form yesod implementation. this needs to be public
+formatLogMessage :: IO ZonedDate
+                 -> Loc
+                 -> LogSource
+                 -> LogLevel
+                 -> LogStr -- ^ message
+                 -> IO [LogStr]
+formatLogMessage getdate loc src level msg = do
+    now <- getdate
+    return
+        [ LB now
+        , LB " ["
+        , LS $
+            case level of
+                LevelOther t -> T.unpack t
+                _ -> drop 5 $ show level
+        , LS $
+            if T.null src
+                then ""
+                else '#' : T.unpack src
+        , LB "] "
+        , msg
+        , LB " @("
+        , LS $ fileLocationToString loc
+        , LB ")\n"
+        ]
+
+-- same deal :(
+fileLocationToString :: Loc -> String
+fileLocationToString loc = (loc_package loc) ++ ':' : (loc_module loc) ++
+  ' ' : (loc_filename loc) ++ ':' : (line loc) ++ ':' : (char loc)
+  where
+    line = show . fst . loc_start
+    char = show . snd . loc_start
+
+lSToT :: LogStr -> Text
+lSToT (LS s) = pack s
+lSToT (LB s) = decodeUtf8 s
+
 instance Yesod WebApp where
   makeSessionBackend = const $ return Nothing
+  messageLoggerSource a logger loc source level msg = do
+    let sl = shouldLog a source level
+    let ctx = LogCtx logCtxName $ a ^. logChan
+    when sl $
+      formatLogMessage (loggerDate logger) loc source level msg >>= runInLogCtx ctx . vLogs . map lSToT
+
 
 mkYesod "WebApp" [parseRoutes|
   /watches                    WatchesR      GET
@@ -69,7 +125,7 @@ postCheckInWatchR name = onWatchExists checkIn name >> noContent
 postTestWatchR :: WatchName -> Handler Value
 postTestWatchR = maybe notFound doTest <=< onWatch findWatchS -- TODO: DRY up
   where doTest w = do notifiers <- configNotifiers <$> getConfig
-                      returnJson =<< (inWebLogCtx $ sendNotifications [w] notifiers)
+                      returnJson =<< inWebLogCtx (sendNotifications [w] notifiers)
 
 noContent :: Handler Value
 noContent = sendResponseStatus noContent204 ()
@@ -89,7 +145,7 @@ getDb = view acid <$> getYesod
 
 inWebLogCtx :: LogCtxT IO a -> HandlerT WebApp IO a
 inWebLogCtx action = do
-  ctx <- LogCtx <$> pure "Web" <*> getLogChan
+  ctx <- LogCtx <$> pure logCtxName <*> getLogChan
   liftIO $ runInLogCtx ctx action
 
 getLogChan :: HandlerT WebApp IO LogChan

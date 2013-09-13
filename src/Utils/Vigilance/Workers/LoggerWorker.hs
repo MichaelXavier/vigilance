@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Utils.Vigilance.Workers.LoggerWorker ( runWorker ) where
+module Utils.Vigilance.Workers.LoggerWorker (runWorker) where
 
 import Prelude (FilePath)
 import ClassyPrelude hiding (FilePath)
