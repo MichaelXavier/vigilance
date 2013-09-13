@@ -19,4 +19,5 @@ Issues
   sure there's a combinator for it.
 * see if config reload can spawn the email worker
 * see if retry count cant be reloaded
-* need to drop FailedNotifications when watches deleted or merged
+* redirect server ogs to log worker
+* do not require config file for client

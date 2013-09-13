@@ -28,6 +28,7 @@ executable vigilance-server
                        configurator >=0.2 && <1.0,
                        containers,
                        data-store >= 0.3.0.7 && <1.0,
+                       directory,
                        either == 3.4.1,
                        entropy >= 0.2.2.2,
                        errors >= 1.4.2 && <2.0,
