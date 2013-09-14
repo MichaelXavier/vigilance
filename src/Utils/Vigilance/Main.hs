@@ -4,6 +4,7 @@
 module Main (main) where
 
 import ClassyPrelude hiding ( FilePath
+                            , getArgs
                             , fromList )
 import Control.Concurrent (forkIO)
 import Control.Concurrent.Async ( waitAnyCatchCancel
@@ -24,12 +25,10 @@ import Data.Acid ( AcidState
                  , closeAcidState )
 import qualified Data.Configurator as C
 import qualified Data.Configurator.Types as CT
-import GHC.IO (FilePath)
-import System.Exit ( exitFailure
-                   , ExitCode(..)
+import Prelude (FilePath)
+import System.Environment (getArgs)
+import System.Exit ( ExitCode(..)
                    , exitWith )
-import System.Directory ( getHomeDirectory
-                        , doesFileExist )
 import System.Posix.Signals ( installHandler
                             , sigHUP
                             , sigINT
@@ -62,18 +61,11 @@ import qualified Utils.Vigilance.Workers.StaticWatchWorker as WW
 import qualified Utils.Vigilance.Workers.SweeperWorker as SW
 
 main :: IO ()
-main = do configPath <- getConfigPath
-          exists <- doesFileExist configPath
-          if exists
-            then runWithConfigPath configPath
-            else noConfig configPath
+main = runWithConfigPath =<< getConfigPath
 
 getConfigPath :: IO FilePath
-getConfigPath = do args <- getArgs
-                   case args of
-                     (p:_) -> return $ unpack p
-                     _     -> findInHome
-  where findInHome = (<> "/.vigilance/server.conf") <$> getHomeDirectory 
+getConfigPath = fromMaybe defaultPath . listToMaybe <$> getArgs
+  where defaultPath = vigilanceDir <> "/server.conf"
 
 runWithConfigPath :: FilePath -> IO ()
 runWithConfigPath path = bindM2 runInMainLogCtx (loadRawConfig path) createLogChan
@@ -179,12 +171,6 @@ notifierDelay = 5 -- arbitrary
 retryDelay :: Int
 --retryDelay = 30
 retryDelay = 10
-
-noConfig :: FilePath -> IO ()
-noConfig p = putStrLn msg >> exitFailure
-  where msg = [qc|Config file {p} not found.
-Usage: vigilance-server [CONFIG_PATH]
-Defaults to ~/.vigilance/server.conf|]
 
 cleanUp :: AcidState AppState -> [Async ()] -> ExitCode -> LogCtxT IO ()
 cleanUp acid workers code = do pushLogs ["cleaning up", "killing workers"]

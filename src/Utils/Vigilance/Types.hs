@@ -325,13 +325,16 @@ defaultLogCfg :: LogCfg
 defaultLogCfg = LogCfg defaultLogPath False
 
 defaultLogPath :: FilePath
-defaultLogPath = "log/vigilance.log"
+defaultLogPath = vigilanceDir <> "/vigilance.log"
 
 defaultAcidPath :: FilePath
-defaultAcidPath = "state/AppState"
+defaultAcidPath = vigilanceDir <> "/state/AppState"
 
 defaultPort :: Int
 defaultPort = 3000
+
+vigilanceDir :: FilePath
+vigilanceDir = "$(HOME)/.vigilance"
 
 data LogMessage = LogMessage        Text |
                   VerboseLogMessage Text deriving (Show, Eq)

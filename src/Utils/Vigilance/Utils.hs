@@ -9,7 +9,8 @@ module Utils.Vigilance.Utils ( watchIntervalSeconds
                              , bindM3
                              , bindM2) where
 
-import ClassyPrelude
+import ClassyPrelude hiding (FilePath)
+import Prelude (FilePath)
 import Control.Monad ( liftM3
                      , liftM2 )
 

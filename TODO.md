@@ -11,6 +11,8 @@ still around. oh well.
 * documentation of config stuff
 * make web server a flag, default to true
 * make state directory more absolute. relative doesn't make sense
+* actually use the classyprelude filepath and convert where necessary
+* add path expansion in Utils.Vigilance.Workers.LoggerWorker
 
 Issues
 * race condition with exit causes process to exit before logs flush. maybe a

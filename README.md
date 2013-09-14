@@ -36,7 +36,8 @@ vigilance-server is the server component of vigilance. It is responsible for
 tracking what watches there are, their state, notifications, etc.
 
 ## Usage
-Simply run `vigilance-server path/to/config.cfg`.
+Simply run `vigilance-server path/to/config.cfg`. If you don't specify a
+config, it will look in `~/.vigilance/server.conf`
 
 ## Configuration
 The configuration file is in
@@ -51,6 +52,7 @@ vigilance {
   max_retries = 5
   log {
     verbose = on
+    # defaults to ~/.vigilance/vigilance.log
     path = "log/vigilance.log"
   }
   watches {

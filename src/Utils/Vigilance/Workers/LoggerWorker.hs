@@ -46,6 +46,7 @@ logMessages logger verbose = loggerPutStr logger <=< addTime logger . map toLogS
   where keep (LogMessage _)        = True
         keep (VerboseLogMessage _) = verbose
 
+--FIXME: expand path
 openLogger :: FilePath -> IO Logger
 openLogger path = mkLogger flushEveryLine =<< openFile path AppendMode
   where flushEveryLine = True

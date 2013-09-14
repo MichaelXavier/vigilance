@@ -63,7 +63,7 @@ pathParser = parser <|> pure defaultConfigPath
   where parser = strOption $ long "config"  <>
                              short 'c'      <>
                              metavar "FILE" <>
-                             help "Config file. Defaults to ~/.vigilance"
+                             help (mconcat ["Config file. Defaults to ", pack vigilanceDir])
 
 
 commandParser :: Mod CommandFields Command

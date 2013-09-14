@@ -31,7 +31,7 @@ data Options = Options { optCommand :: Command
                        , configPath :: FilePath } deriving (Show, Eq)
 
 defaultConfigPath :: FilePath
-defaultConfigPath = "$(HOME)/.vigilance/client.conf"
+defaultConfigPath = vigilanceDir <> "/client.conf"
 
 data ClientConfig = ClientConfig { serverHost :: Hostname
                                  , serverPort :: Port } deriving (Show, Eq)
