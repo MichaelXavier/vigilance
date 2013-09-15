@@ -50,7 +50,6 @@ readClientConfig = convertClientConfig <=< loadConfig
 loadConfig :: FilePath -> IO CT.Config
 loadConfig pth = load [Optional pth]
 
---TODO: elimiate toplevel in config
 convertClientConfig :: CT.Config -> IO ClientConfig
 convertClientConfig cfg = ClientConfig <$> lookupHost <*> lookupPort
   where lookupHost = C.lookupDefault defaultHost cfg "vigilance.host"

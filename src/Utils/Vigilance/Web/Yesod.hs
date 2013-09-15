@@ -84,9 +84,8 @@ postCheckInWatchR :: WatchName -> Handler Value
 postCheckInWatchR name = onWatchExists checkIn name >> noContent
   where checkIn db n = liftIO $ bindM3 checkInWatchS (return db) getPOSIXTime (return n)
 
---TODO: reflect failures in status
 postTestWatchR :: WatchName -> Handler Value
-postTestWatchR = maybe notFound doTest <=< onWatch findWatchS -- TODO: DRY up
+postTestWatchR = maybe notFound doTest <=< onWatch findWatchS
   where doTest w = do notifiers <- configNotifiers <$> getConfig
                       returnJson =<< inWebLogCtx (sendNotifications [w] notifiers)
 

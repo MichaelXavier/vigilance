@@ -51,7 +51,6 @@ displayError e = putStrLn (message e) >> exitFailure
 opts :: ParserInfo Options
 opts = info (helper <*> optionsParser) banner
   where banner = fullDesc <>
-                 progDesc "TODO: full desc" <>
                  header "vigilance - tool for managing vigilance watches locally or remotely."
 
 optionsParser :: Parser Options

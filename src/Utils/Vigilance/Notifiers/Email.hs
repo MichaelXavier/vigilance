@@ -41,7 +41,6 @@ notify ctx = EmailNotifier notifierBody
   where notifierBody watches = renameLogCtx "Email Notifier" $ concatMapM renderSendMail' mails
           where mails = generateEmails watches ctx
 
---TODO: exception handling
 renderSendMail' :: NotificationMail -> LogCtxT IO [FailedNotification]
 renderSendMail' (NotificationMail ws mail) = do
   pushLog [qc|Sending email notification to {emailList}|]

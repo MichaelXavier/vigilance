@@ -27,8 +27,20 @@ import Data.Aeson ( FromJSON
                   , fromJSON )
 import Blaze.ByteString.Builder (Builder)
 import Data.Ix (inRange)
---TODO: limit impors
-import Network.Http.Client
+import Network.Http.Client ( Method(GET, POST)
+                           , Response
+                           , emptyBody
+                           , withConnection
+                           , openConnection
+                           , http
+                           , setAccept
+                           , setHeader
+                           , buildRequest
+                           , sendRequest
+                           , receiveResponse
+                           , RequestBuilder
+                           , getStatusCode
+                           , StatusCode )
 import System.IO.Streams.Attoparsec (parseFromStream)
 import qualified System.IO.Streams as S
 import Text.InterpolatedString.Perl6 (qc)
@@ -59,7 +71,6 @@ displayWatchInfo = putStrLn . renderWatchInfo
 displayFailedNotifications :: [FailedNotification] -> IO ()
 displayFailedNotifications = putStrLn . renderFailedNotifications
 
---TODO
 renderFailedNotifications :: [FailedNotification] -> Text
 renderFailedNotifications []  = "All notifications sent successfully."
 renderFailedNotifications fns = unlines' . (header:) . map render $ fns
@@ -160,25 +171,26 @@ defaultUserAgent = "vigilance client"
 unitResponseHandler :: Response
                        -> S.InputStream ByteString
                        -> IO (VigilanceResponse ())
-unitResponseHandler resp _
-  | responseOk        = return . Right $ ()
-  | notFound          = return . Left $ NotFound 
-  | otherwise         = return . Left $ StatusError statusCode
-  where statusCode        = getStatusCode resp
-        responseOk        = inRange (200, 299) statusCode
-        notFound          = statusCode == 404
+unitResponseHandler = responseHandler (const $ return $ Right ())
 
 jsonResponseHandler :: FromJSON a
                        => Response
                        -> S.InputStream ByteString
                        -> IO (VigilanceResponse a)
-jsonResponseHandler resp stream
-  | responseOk        = handleJSONBody stream
+jsonResponseHandler = responseHandler handleJSONBody
+
+responseHandler :: (S.InputStream ByteString -> IO (VigilanceResponse a))
+                   -> Response
+                   -> S.InputStream ByteString
+                   -> IO (VigilanceResponse a)
+responseHandler successHandler resp stream
+  | responseOk        = successHandler stream
   | notFound          = return . Left $ NotFound 
   | otherwise         = return . Left $ StatusError statusCode
   where statusCode        = getStatusCode resp
         responseOk        = inRange (200, 299) statusCode
         notFound          = statusCode == 404
+  
 
 handleJSONBody :: FromJSON a => S.InputStream ByteString -> IO (VigilanceResponse a)
 handleJSONBody stream = coerceParsed <$> parseJSONBody stream
