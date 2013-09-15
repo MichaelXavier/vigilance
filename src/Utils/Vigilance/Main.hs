@@ -124,7 +124,6 @@ runWithConfig rCfg = do cfg      <- lift $ convertConfig rCfg
                         vLog "Retry worker started"
 
                         vLog "Starting web server"
-                        --TODO: give custom logger to server
                         server <- lift $ async $ runServer webApp
 
                         static <- lift $ async $ workForeverWith staticH watchWorker
@@ -145,12 +144,11 @@ runWithConfig rCfg = do cfg      <- lift $ convertConfig rCfg
                         vLog "waiting for any process to fail"
 
                         void . lift . forkIO $ do
-                          print . snd =<< waitAnyCatchCancel (logger:workers)
+                          void $ waitAnyCatchCancel (logger:workers)
                           wakeUp quitSig (ExitFailure 1)
 
                         vLog "waiting for quit signal"
                         code <- lift $ waitForWake quitSig
-                        lift $ print code
 
                         cleanUp acid workers code
   where initialState :: Config -> WatchTable
