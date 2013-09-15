@@ -103,6 +103,17 @@ settings:
 | watches._name_.notifications   | Empty                       | List of pairs ["http", "url"] or ["email", "a@example.com"] | Yes        |
 
 ## REST API
+Vigilance exposes a REST API for managing watches.
+
+| Path                    | Method | Description                                                                                  |
+| ----------------------- | ------ | -------------------------------------------------------------------------------------------- |
+| /watches                | GET    | Get the list of watches in JSON.                                                             |
+| /watches/_name_         | GET    | Get info for a watch by name                                                                 |
+| /watches/_name_         | DELETE | Delete a watch. Make sure to remove it from the config or it will return on config (re)load. |
+| /watches/_name_/pause   | POST   | Take a watch out of operation.                                                               |
+| /watches/_name_/unpause | POST   | Put a watch back in operation.                                                               |
+| /watches/_name_/checkin | POST   | Check in a watch.                                                                            |
+| /watches/_name_/test    | POST   | Synchronously fire a watch's notifications. Returns a list of failures in JSON.              |
 
 # Vigilance Client
 Vigilance Client is available under the `vigilance` binary. It allows you to
