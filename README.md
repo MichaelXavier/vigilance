@@ -44,46 +44,42 @@ The configuration file is in
 [configurator](http://hackage.haskell.org/package/configurator) format. Here's
 an example config
 
-### Full Config
-```
-vigilance {
-  port = 9999
-  from_email = "vigilance@example.com"
-  max_retries = 5
-  log {
-    verbose = on
-    # defaults to ~/.vigilance/vigilance.log
-    path = "log/vigilance.log"
-  }
-  watches {
-    foo {
-      interval = [2, "seconds"]
-      notifications = [
-        ["http", "http://localhost:4567/notify"],
-        ["email", "ohno@example.com"]
-      ]
-    }
+### Example Config
 
-    bar {
-      interval = [3, "minutes"]
+    vigilance {
+      port = 9999
+      from_email = "vigilance@example.com"
+      max_retries = 5
+      log {
+        verbose = on
+        path = "log/vigilance.log"
+      }
+      watches {
+        foo {
+          interval = [2, "seconds"]
+          notifications = [
+            ["http", "http://localhost:4567/notify"],
+            ["email", "ohno@example.com"]
+          ]
+        }
+
+        bar {
+          interval = [3, "minutes"]
+        }
+      }
     }
-  }
-}
-```
 
 Note that like the standard capabilities configurator has to expand env
 variables and  load external config files apply:
 
-```
+    vigilance {
+      acid_path  = "$(HOME)/vigilance-data"
 
-vigilance {
-  acid_path  = "$(HOME)/vigilance-data"
+      watches {
+        import "only_watches.conf"
+      }
+    }
 
-  watches {
-    import "only_watches.conf"
-  }
-}
-```
 ### Limited Config Reload Support
 Sending a `HUP` signal to the process (`kill -HUP pid_of_vigilance`) will
 reload the config. Reloading while running can currently update the following
@@ -93,16 +89,18 @@ settings:
 2. List of watches
 3. Log location
 
-### Default Config
-The following values are defaulted if not supplied by the config:
+### Config Fields
 
-1. `vigilance.port` - 3000
-2. `vigilance.acid_path` - state/AppState
-3. `vigilance.from_email` - None. Will disable emails.
-4. `vigilance.max_retries` - 3. Number of times a notification will retry.
-5. `vigilance.log.verbose` - no
-6. `vigilance.log.path` - log/vigilance.log
-7. `vigilance.watches` - none
+| Field                          | Default                     | Description                                                 | Reloadable |
+| ------------------------------ | --------------------------- | ---------------------------------------------------------   | ---------- |
+| port                           | 3000                        | Server port                                                 | No         |
+| from_email                     | None                        | Email  to send from. If missing, no email notifications     | No         |
+| max_retries                    | 3                           | Max retries for notifications                               | No         |
+| log.acid_path                  | ~/.vigilance/state/AppState |                                                             | No         |
+| log.verbose                    | no                          | Verbose logging                                             | Yes        |
+| log.path                       | ~/.vigilance/vigilance.log  |                                                             | Yes        |
+| watches._name_.interval        | None. Required for a watch  | Pair of number and seconds/minutes/hours/days/weeks/years   | Yes        |
+| watches._name_.notifications   | Empty                       | List of pairs ["http", "url"] or ["email", "a@example.com"] | Yes        |
 
 ## REST API
 
@@ -117,33 +115,30 @@ shell scripts.
 Vigilance by default looks for a `.vigilance` file in your home directory,
 which looks like:
 
-```
-vigilance
-{
-  host = "localhost"
-  port = 3000
-}
-```
+    vigilance
+    {
+      host = "localhost"
+      port = 3000
+    }
 
 # Usage
 Run `vigilance --help` for help:
-```
-vigilance - tool for managing vigilance watches locally or remotely.
 
-Usage: vigilance COMMAND [-c|--config FILE]
+    vigilance - tool for managing vigilance watches locally or remotely.
 
-Available options:
-  -h,--help                Show this help text
-  -c,--config FILE         Config file. Defaults to ~/.vigilance
+    Usage: vigilance COMMAND [-c|--config FILE]
 
-Available commands:
-  list                     List watches
-  pause                    Pause watch
-  unpause                  Unpause watch
-  checkin                  Check in watch
-  info                     Get info about a watch
-  test                     Test the notifications for a watch
-```
+    Available options:
+      -h,--help                Show this help text
+      -c,--config FILE         Config file. Defaults to ~/.vigilance
+
+    Available commands:
+      list                     List watches
+      pause                    Pause watch
+      unpause                  Unpause watch
+      checkin                  Check in watch
+      info                     Get info about a watch
+      test                     Test the notifications for a watch
 
 All commands except `list` take a name argument for the watch like: `vigilance
 pause foo`.
