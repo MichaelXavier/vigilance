@@ -9,6 +9,8 @@ import Control.Concurrent.STM.TChan ( readTChan
                                     , TChan )
 import Control.Lens
 import Control.Monad ( (<=<) )
+import qualified Data.Text as T
+import System.Directory (getHomeDirectory)
 import System.IO ( openFile
                  , IOMode(AppendMode) )
 import System.Log.FastLogger ( Logger
@@ -46,10 +48,16 @@ logMessages logger verbose = loggerPutStr logger <=< addTime logger . map toLogS
   where keep (LogMessage _)        = True
         keep (VerboseLogMessage _) = verbose
 
---FIXME: expand path
 openLogger :: FilePath -> IO Logger
-openLogger path = mkLogger flushEveryLine =<< openFile path AppendMode
+openLogger path = do path' <- absolutize path
+                     h     <- openFile path' AppendMode
+                     mkLogger flushEveryLine h
   where flushEveryLine = True
+
+absolutize :: FilePath -> IO FilePath
+absolutize path = do home <- pack <$> getHomeDirectory
+                     return . unpack . T.replace homeVar home . pack $ path
+  where homeVar = "$(HOME)"
 
 addTime :: Logger -> [LogStr] -> IO [LogStr]
 addTime logger = mapM fmt 
