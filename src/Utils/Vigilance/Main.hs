@@ -50,6 +50,7 @@ import Utils.Vigilance.Types
 import Utils.Vigilance.Utils ( bindM2
                              , newWakeSig
                              , waitForWake
+                             , expandHome
                              , wakeUp )
 import Utils.Vigilance.Worker ( workForeverWithDelayed
                               , workForeverWith )
@@ -75,9 +76,10 @@ runInMainLogCtx rCfg logChan = do let ctx = LogCtx "Main" logChan
                                   runInLogCtx ctx $ runWithConfig rCfg
 
 runWithConfig :: CT.Config -> LogCtxT IO ()
-runWithConfig rCfg = do cfg     <- lift $ convertConfig rCfg
-                        lCtx    <- ask
-                        logChan <- asks (view ctxChan)
+runWithConfig rCfg = do cfg      <- lift $ convertConfig rCfg
+                        lCtx     <- ask
+                        logChan  <- asks (view ctxChan)
+                        acidPath <- lift $ expandHome $ cfg ^. configAcidPath
 
                         (configChanW, configChanR, configChanR') <- lift $ atomically $ do w  <- newBroadcastTChan
                                                                                            r  <- dupTChan w
@@ -85,7 +87,7 @@ runWithConfig rCfg = do cfg     <- lift $ convertConfig rCfg
                                                                                            return (w, r, r')
 
                         let notifiers = configNotifiers cfg
-                        acid      <- lift $ openLocalStateFrom (cfg ^. configAcidPath) (AppState (initialState cfg) mempty)
+                        acid      <- lift $ openLocalStateFrom acidPath (AppState (initialState cfg) mempty)
                         quitSig   <- lift newWakeSig
 
                         let sweeperH       = errorLogger "Sweeper" lCtx

@@ -1,4 +1,5 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Utils.Vigilance.Utils ( watchIntervalSeconds
                              , WakeSig
                              , newWakeSig
@@ -6,6 +7,7 @@ module Utils.Vigilance.Utils ( watchIntervalSeconds
                              , waitForWake
                              , concatMapM
                              , tryReadTChan
+                             , expandHome
                              , bindM3
                              , bindM2) where
 
@@ -23,7 +25,8 @@ import Control.Concurrent.STM.TMVar ( TMVar
                                     , newEmptyTMVarIO
                                     , takeTMVar
                                     , putTMVar)
-
+import qualified Data.Text as T
+import System.Directory (getHomeDirectory)
 import Utils.Vigilance.Types
 
 watchIntervalSeconds :: WatchInterval -> Integer
@@ -57,3 +60,8 @@ wakeUp sig = atomically . putTMVar sig
 
 tryReadTChan :: TChan a -> STM (Maybe a)
 tryReadTChan c = (Just <$> readTChan c) `orElse` return Nothing
+
+expandHome :: FilePath -> IO FilePath
+expandHome path = do home <- pack <$> getHomeDirectory
+                     return . unpack . T.replace homeVar home . pack $ path
+  where homeVar = "$(HOME)"
