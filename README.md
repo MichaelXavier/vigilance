@@ -28,7 +28,7 @@ changes/additions/removals of watches.
 Watches can be configured with multiple *notifications* to fire when the watch
 fails to check in. Right now the supported notification options are:
 
-* Email
+* Email - currently uses a local sendmail service.
 * HTTP POST
 
 # vigilance-server
@@ -119,7 +119,8 @@ Vigilance exposes a REST API for managing watches.
 Vigilance Client is available under the `vigilance` binary. It allows you to
 interact with a vigilance server over HTTP in a concise way. The idea behind
 this is that it should make it very easy to insert check-ins in crontabs and
-shell scripts.
+shell scripts. You can imagine a crontab entry like:
+`@daily run_backups.sh && vigilance checkin backups`.
 
 
 # Configuration
