@@ -1,13 +1,5 @@
 #!/usr/bin/env rake
 
-def number_of_cores
-  `nproc`.chomp
-end
-
-def build_flags
-  "-j#{number_of_cores}"
-end
-
 desc "run ghci scoped to the sandboxed cabal project"
 task :ghci => FileList.new(".cabal-sandbox/*packages.conf.d", "cabal-dev/*packages.conf.d") do |x|
   cmd = "ghci -isrc"
@@ -25,17 +17,17 @@ end
 
 desc "install only essential dependencies. build does this for you"
 task :install_dependencies do
-  sh "cabal install #{build_flags} --only-dependencies"
+  sh "cabal install --only-dependencies"
 end
 
 desc "install only essential dependencies. test does this for you"
 task :install_dependencies_for_test do
-  sh "cabal install #{build_flags} --only-dependencies --enable-tests"
+  sh "cabal install --only-dependencies --enable-tests"
 end
 
 desc "just build the project for production"
 task :build => [:configure, :install_dependencies] do
-  sh "cabal build #{build_flags}"
+  sh "cabal build"
 end
 
 desc "run tests once. consider using guard afterwards for faster feedback"
@@ -57,7 +49,7 @@ task :configure_for_test do
 end
 
 task :build_for_test => [:configure_for_test, :install_dependencies_for_test] do
-  sh "cabal build #{build_flags}"
+  sh "cabal build"
 end
 
 task :default => :build
