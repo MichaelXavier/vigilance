@@ -5,18 +5,17 @@ Vigilance is a [dead man's switch](https://en.wikipedia.org/wiki/Dead_man%27s_sw
 (or vigilance switch). You define named **watches** that you expect to happen
 and how long to wait inbetween before it's time to worry. You then instrument
 your periodical tasks, whatever they are, to report to vigilance via a simple
-HTTP POST. You can then configure notifications that will fire when a watch
-fails to check in.
+HTTP POST or with the included client. You can then configure notifications
+that will fire when a watch fails to check in.
 
 # Concepts
-A *watch* is a named task that you expect to happen periodically. Watches can
-be in several states:
+A *watch* is a named task that you expect to happen periodically. Watches have
+an interval at which they are expected to check in at the latest, i.e. every 5
+minutes. Watches can be in several states:
 
 * *Active* - The clock is ticking but this watch has not yet triggered.
 * *Paused* - The clock is not ticking. **Watches start out in this state.**
-  That means that you must unpause the watch to start monitoring this. I
-  thought about automatically unpausing on checkin but that would mean to pause
-  notification you'd have to eliminate all checkins.
+  That means that you must unpause or check-in the watch to start the watch.
 * *Notifying* - The watch has failed to check in and will notify soon.
 * *Triggered* - The watch has failed to check in and has notified. It will not
   notify until it is dealt with, either by pausing, checkin in on removal.
@@ -69,11 +68,14 @@ an example config
       }
     }
 
+Note that all of these options have reasonable defaults, so you don't need to
+specify them unless you need something other than the default.
+
 Note that like the standard capabilities configurator has to expand env
 variables and  load external config files apply:
 
     vigilance {
-      acid_path  = "$(HOME)/vigilance-data"
+      acid_path  = "$(HOME)/alternative-vigilance-path"
 
       watches {
         import "only_watches.conf"
@@ -99,8 +101,8 @@ settings:
 | log.acid_path                  | ~/.vigilance/state/AppState |                                                             | No         |
 | log.verbose                    | no                          | Verbose logging                                             | Yes        |
 | log.path                       | ~/.vigilance/vigilance.log  |                                                             | Yes        |
-| watches._name_.interval        | None. Required for a watch  | Pair of number and seconds/minutes/hours/days/weeks/years   | Yes        |
-| watches._name_.notifications   | Empty                       | List of pairs ["http", "url"] or ["email", "a@example.com"] | Yes        |
+| watches.*name*.interval        | None. Required for a watch  | Pair of number and seconds/minutes/hours/days/weeks/years   | Yes        |
+| watches.*name*.notifications   | Empty                       | List of pairs ["http", "url"] or ["email", "a@example.com"] | Yes        |
 
 ## REST API
 Vigilance exposes a REST API for managing watches.
@@ -108,12 +110,12 @@ Vigilance exposes a REST API for managing watches.
 | Path                    | Method | Description                                                                                  |
 | ----------------------- | ------ | -------------------------------------------------------------------------------------------- |
 | /watches                | GET    | Get the list of watches in JSON.                                                             |
-| /watches/_name_         | GET    | Get info for a watch by name                                                                 |
-| /watches/_name_         | DELETE | Delete a watch. Make sure to remove it from the config or it will return on config (re)load. |
-| /watches/_name_/pause   | POST   | Take a watch out of operation.                                                               |
-| /watches/_name_/unpause | POST   | Put a watch back in operation.                                                               |
-| /watches/_name_/checkin | POST   | Check in a watch.                                                                            |
-| /watches/_name_/test    | POST   | Synchronously fire a watch's notifications. Returns a list of failures in JSON.              |
+| /watches/*name*         | GET    | Get info for a watch by name                                                                 |
+| /watches/*name*         | DELETE | Delete a watch. Make sure to remove it from the config or it will return on config (re)load. |
+| /watches/*name*/pause   | POST   | Take a watch out of operation.                                                               |
+| /watches/*name*/unpause | POST   | Put a watch back in operation.                                                               |
+| /watches/*name*/checkin | POST   | Check in a watch. Unpauses if it is paused.                                                  |
+| /watches/*name*/test    | POST   | Synchronously fire a watch's notifications. Returns a list of failures in JSON.              |
 
 # Vigilance Client
 Vigilance Client is available under the `vigilance` binary. It allows you to
@@ -156,8 +158,8 @@ All commands except `list` take a name argument for the watch like: `vigilance
 pause foo`.
 
 ## Status
-Currently unreleased and under active development, but I'm getting close. See
-`TODO.md` for some notes on what I need to do.
+Gearing up for release. Nothing in the TODO necessitates holding up the
+release.
 
 ## License
 Vigilance is released under the MIT license. See the `LICENSE` file for more

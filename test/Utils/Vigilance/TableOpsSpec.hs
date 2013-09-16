@@ -57,11 +57,11 @@ spec = parallel $ do
       in findWatch wName table' == Just w'
 
   describe "checkInWatch" $ do
-    prop "leaves paused watches unaltered" $ \w time ->
+    prop "unpauses paused watches" $ \w time ->
       let (w', table) = createWatch w { _watchWState = Paused } emptyTable
           wName         = w' ^. watchName
           table'      = checkInWatch time wName table
-      in findWatch wName table' == Just w'
+      in findWatch wName table' == Just w' { _watchWState = Active time}
 
     prop "updates non-paused watches to active with the given time" $ \w time ->
       let ws = case w ^. watchWState of

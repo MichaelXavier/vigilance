@@ -137,9 +137,7 @@ watchLens f n table = table & with (sWatchName .== n) %~ over mapped f
 
 checkInWatch :: POSIXTime -> WatchName -> WatchTable -> WatchTable
 checkInWatch time = watchLens doCheckIn
-  where doCheckIn w        = w & watchWState %~ updateState
-        updateState Paused = Paused
-        updateState _      = Active time
+  where doCheckIn w = w & watchWState .~ (Active time)
 
 pauseWatch :: WatchName -> WatchTable -> WatchTable
 pauseWatch = watchLens pause
