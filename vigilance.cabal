@@ -5,8 +5,9 @@ Description:         Vigilance is a dead man's switch (See <https://en.wikipedia
                      (or vigilance switch). You define named @watches that you expect to happen
                      and how long to wait inbetween before it's time to worry. You then instrument
                      your periodical tasks, whatever they are, to report to vigilance via a simple
-                     HTTP POST. You can then configure notifications that will fire when a watch
-                     fails to check in.
+                     HTTP POST or with the included client. You can then
+                     configure notifications that will fire when a watch fails
+                     to check in.
 
                      View the README on the homepage for more details.
 
