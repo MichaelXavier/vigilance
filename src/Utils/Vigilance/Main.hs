@@ -126,6 +126,10 @@ runWithConfig rCfg = do cfg      <- lift $ convertConfig rCfg
                         vLog "Starting web server"
                         server <- lift $ async $ runServer webApp
 
+                        vLog "Priming reload queue"
+                        lift $ broadcastCfgReload rCfg configChanW
+
+                        vLog "Starting static watch worker"
                         static <- lift $ async $ workForeverWith staticH watchWorker
 
                         let workers = [ server
