@@ -1,5 +1,5 @@
 Name:                vigilance
-Version:             0.1.0.0
+Version:             0.1.0.1
 Synopsis:            An extensible dead-man's switch system
 Description:         Vigilance is a dead man's switch (See <https://en.wikipedia.org/wiki/Dead_man%27s_switch>)
                      (or vigilance switch). You define named @watches that you expect to happen
