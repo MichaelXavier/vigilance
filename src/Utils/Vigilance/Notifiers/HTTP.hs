@@ -34,10 +34,11 @@ watchesWithNotifications = concatMap extractUrls
 makeRequest :: EWatch -> URL -> LogCtxT IO (Maybe FailedNotification)
 makeRequest w url = do
   inputStream <- lift $ jsonBodyStream w
-  vLog [qc|Notifying {w ^. watchName} at {url}|]
+  vLog [qc|Notifying {wn} at {url}|]
   result <- lift . tryAny $ post url "application/json" inputStream skipResponse
   either failedByException handleCode result
   where skipResponse r _ = return $ getStatusCode r
+        wn               = w ^. watchName . unWatchName
         handleCode code
           | inRange (200, 299) code = success code
           | otherwise               = failure code

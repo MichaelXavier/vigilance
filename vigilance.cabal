@@ -33,8 +33,10 @@ Copyright:           (c) 2013 Michael Xavier
 Category:            Utils
 Build-Type:          Simple
 Cabal-Version:       >=1.10
-Homepage:           http://github.com/michaelxavier/vigilance
-Bug-Reports:        http://github.com/michaelxavier/vigilance/issues
+Homepage:            http://github.com/michaelxavier/vigilance
+Bug-Reports:         http://github.com/michaelxavier/vigilance/issues
+Extra-Source-Files:  README.md
+                     TODO.md
 
 Flag no-server
   Description: Omit the server component. Installs on client machines can and should pass this.
@@ -92,6 +94,22 @@ Executable vigilance-server
                         yesod-platform >= 1.2.3 && < 2.0
     Default-Language:    Haskell2010
     Ghc-Options: -threaded -O3 -rtsopts -Wall -Werror
+    Other-Modules: Utils.Vigilance.Config
+                   Utils.Vigilance.Logger
+                   Utils.Vigilance.TableOps
+                   Utils.Vigilance.Types
+                   Utils.Vigilance.Utils
+                   Utils.Vigilance.Worker
+                   Utils.Vigilance.Web.Yesod
+                   Utils.Vigilance.Workers.LoggerWorker
+                   Utils.Vigilance.Workers.NotificationWorker
+                   Utils.Vigilance.Workers.NotificationRetryWorker
+                   Utils.Vigilance.Workers.StaticWatchWorker
+                   Utils.Vigilance.Workers.SweeperWorker
+                   Utils.Vigilance.Sweeper
+                   Utils.Vigilance.Notifiers.HTTP
+                   Utils.Vigilance.Notifiers.Email
+                   Utils.Vigilance.Notifiers.Log
 
 Executable vigilance
   Hs-Source-Dirs:     src
@@ -138,6 +156,9 @@ Executable vigilance
                         yesod-platform >= 1.2.3 && < 2.0
     Default-Language:    Haskell2010
     Ghc-Options: -threaded -O3 -rtsopts -Wall -Werror
+    Other-Modules: Utils.Vigilance.Client.Client
+                   Utils.Vigilance.Client.Config
+                   Utils.Vigilance.Types
 
 Test-Suite test-vigilance
   default-language:    Haskell2010

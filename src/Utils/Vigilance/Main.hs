@@ -102,7 +102,7 @@ runWithConfig rCfg = do cfg      <- lift $ convertConfig rCfg
                         let watchWorker    = runInLogCtx lCtx $ WW.runWorker acid configChanR'
                         let webApp         = WebApp acid cfg logChan
 
-                        vLog "Starting logger" -- TIME PARADOX
+                        vLog "Starting logger"
 
                         logger <- lift $ async $ workForeverWith loggerH loggerWorker
 
