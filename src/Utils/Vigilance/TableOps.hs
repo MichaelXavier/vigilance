@@ -70,7 +70,7 @@ module Utils.Vigilance.TableOps ( allWatches
                                 , sWatchNotifications
                                 , emptyTable) where
 
-import ClassyPrelude hiding (fromList)
+import ClassyPrelude hiding (fromList, foldl')
 import Control.Lens
 import Data.Acid
 import Data.Acid.Advanced (update', query')

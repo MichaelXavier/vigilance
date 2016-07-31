@@ -15,8 +15,6 @@ import Control.Monad.Reader ( runReaderT
                             , asks
                             , withReaderT )
 import Control.Monad.Trans (lift)
-import Data.Monoid ( Monoid
-                   , mconcat)
 import Data.Text (Text)
 
 import Utils.Vigilance.Types
