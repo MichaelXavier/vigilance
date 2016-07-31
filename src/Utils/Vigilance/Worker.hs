@@ -4,7 +4,6 @@ module Utils.Vigilance.Worker ( workForeverWith
                               , workForever) where
 
 import ClassyPrelude
-import Control.Concurrent (threadDelay)
 
 workForeverWithDelayed :: Int -> (SomeException -> IO ()) -> IO () -> IO ()
 workForeverWithDelayed d handler action = workForeverWith handler doAction

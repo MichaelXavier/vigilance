@@ -11,8 +11,6 @@ module Utils.Vigilance.Client.Config ( Command(..)
 
 import Prelude (FilePath)
 import ClassyPrelude hiding (FilePath)
-import Control.Monad ((<=<))
-import Control.Monad.Trans.Reader
 import Data.Configurator (load, Worth(Optional))
 import qualified Data.Configurator as C
 import qualified Data.Configurator.Types as CT

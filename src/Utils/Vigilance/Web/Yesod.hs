@@ -5,6 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE NoImplicitPrelude         #-}
+{-# LANGUAGE ViewPatterns              #-}
 -- thanks, yesod :(
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
 module Utils.Vigilance.Web.Yesod ( runServer
@@ -12,8 +13,8 @@ module Utils.Vigilance.Web.Yesod ( runServer
 
 import ClassyPrelude
 import Control.Lens
-import Control.Monad ( (<=<) )
 import Data.Acid (AcidState)
+import Data.String.Conversions (cs)
 import Data.Time.Clock.POSIX ( getPOSIXTime
                              , POSIXTime )
 import qualified Network.Wai as W
@@ -34,7 +35,7 @@ import Utils.Vigilance.Types
 import Utils.Vigilance.Workers.NotificationWorker (sendNotifications)
 import Utils.Vigilance.Utils (bindM3)
 
-import System.Log.FastLogger (LogStr(..))
+import System.Log.FastLogger (LogStr, fromLogStr)
 import Yesod
 
 data WebApp = WebApp { _acid    :: AcidState AppState
@@ -49,8 +50,7 @@ logCtxName = "Web"
 -- stolen form yesod implementation. this needs to be public
 
 lSToT :: LogStr -> Text
-lSToT (LS s) = pack s
-lSToT (LB s) = decodeUtf8 s
+lSToT = cs . fromLogStr
 
 instance Yesod WebApp where
   makeSessionBackend = const $ return Nothing
@@ -119,7 +119,7 @@ mkDefaultMiddlewares' ctx = do
            . autohead
            . gzip def
            . methodOverride
-  where cb = runInLogCtx ctx . vLog . mconcat . map lSToT
+  where cb = runInLogCtx ctx . vLog . lSToT
 
 getDb :: HandlerT WebApp IO (AcidState AppState)
 getDb = view acid <$> getYesod

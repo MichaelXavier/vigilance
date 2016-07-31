@@ -1,0 +1,3 @@
+[submodule "data-store"]
+	path = data-store
+	url = https://github.com/zerobuzz/data-store.git

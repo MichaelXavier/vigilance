@@ -8,6 +8,7 @@ module Utils.Vigilance.Workers.NotificationWorker ( runWorker
 import ClassyPrelude
 import Control.Lens
 import Data.Acid (AcidState)
+import Data.String.Conversions (cs)
 
 import Utils.Vigilance.Logger
 import Utils.Vigilance.TableOps
@@ -31,10 +32,10 @@ runWorker acid notifiers = renameLogCtx "Notifier Worker" $ do
 
 notifyingMsg :: [EWatch] -> Text
 notifyingMsg watches = mconcat ["Notifying for ", length' watches, " watches: ", names]
-  where length' = show . length
+  where length' = cs . show . length
         names   = intercalate ", " $ map (view (watchName . unWatchName)) watches
 
 extractNotifiers :: NotifierGroup -> [Notifier]
-extractNotifiers NotifierGroup {..} = catMaybes [ view notifier <$> _ngEmail
-                                                , Just $ _ngLog ^. notifier
-                                                , Just $ _ngHTTP ^. notifier]
+extractNotifiers NotifierGroup {..} = catMaybes [ _emailNotifier <$> _ngEmail
+                                                , Just $ _logNotifier _ngLog
+                                                , Just $ _httpNotifier _ngHTTP]

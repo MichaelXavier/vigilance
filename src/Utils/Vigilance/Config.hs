@@ -6,12 +6,12 @@ module Utils.Vigilance.Config ( configNotifiers
                               , loadRawConfig
                               , loadConfig) where
 
-import ClassyPrelude hiding (FilePath)
-import Control.Monad ((<=<))
+import ClassyPrelude hiding (FilePath, (<>))
 import Control.Lens
 import qualified Data.Configurator as C
 import qualified Data.Configurator.Types as CT
 import qualified Data.HashMap.Strict as HM
+import Data.Monoid ((<>))
 import qualified Data.Text as T
 import Data.Time.Clock.POSIX ( POSIXTime
                              , getPOSIXTime )
@@ -89,6 +89,6 @@ parseNotification (CT.List [CT.String "http",  CT.String u]) = Just . HTTPNotifi
 parseNotification _                                          = Nothing
 
 parseInterval :: CT.Value -> Maybe WatchInterval
-parseInterval (CT.List [CT.Number n, CT.String unit]) = Every <$> (pure . truncate $ n) 
+parseInterval (CT.List [CT.Number n, CT.String unit]) = Every <$> (pure . truncate $ n)
                                                               <*> txtToTimeUnit unit
 parseInterval _                                       = Nothing

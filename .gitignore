@@ -2,3 +2,4 @@ log/
 example.conf
 state/
 client_session_key.aes
+.stack-work

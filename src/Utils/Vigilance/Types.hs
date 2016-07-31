@@ -11,25 +11,21 @@
 {-# LANGUAGE TemplateHaskell            #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE ViewPatterns               #-}
 module Utils.Vigilance.Types where
 
 import Prelude (FilePath)
 import ClassyPrelude hiding (FilePath)
-import Control.Concurrent.STM.TChan (TChan)
-import Control.Monad (mzero)
-import Control.Monad.Reader (ReaderT)
 import Control.Lens hiding ((.=))
 import Data.Aeson
-import qualified Data.Attoparsec.Number as N
-import Data.SafeCopy ( base
-                     , SafeCopy
-                     , deriveSafeCopy)
+import Data.SafeCopy (base, deriveSafeCopy)
 import           Data.Store ( M
                             , O
                             , (:.)
                             , Store )
 import qualified Data.Store as S
 import           Data.Store.Storable (Storable(..))
+import Data.String.Conversions (cs)
 import Data.Time.Clock.POSIX (POSIXTime)
 import qualified Data.Vector as V
 import Network.Http.Client ( URL
@@ -45,11 +41,11 @@ newtype ID = ID { _unID :: Int } deriving ( Show
                                           , PathPiece
                                           , Ord
                                           , Num
-                                          , SafeCopy
                                           , FromJSON
                                           , ToJSON
                                           , Typeable)
 
+deriveSafeCopy 0 'base ''ID
 makeClassy ''ID
 
 instance Bounded ID where
@@ -61,11 +57,11 @@ data WatchInterval = Every Integer TimeUnit deriving (Show, Eq, Typeable, Ord)
 
 instance ToJSON WatchInterval where
   toJSON (Every n u) = Array $ V.fromList [toJSON n, toJSON u]
-  
+
 instance FromJSON WatchInterval where
   parseJSON = withArray "WatchInterval" $ parseWatchInterval . V.toList
-    where parseWatchInterval [Number (N.I n), s@(String _)]
-            | n > 0     = Every <$> pure n <*> parseJSON s -- just get it out of the N.I and call pure?
+    where parseWatchInterval [Number n, s@(String _)]
+            | n > 0     = Every <$> pure (round n) <*> parseJSON s
             | otherwise = fail "interval must be > 0"
           parseWatchInterval _                              = fail "expecting a pair of integer and string"
 
@@ -101,11 +97,11 @@ instance FromJSON TimeUnit where
 newtype EmailAddress = EmailAddress { _unEmailAddress :: Text } deriving ( Show
                                                                          , Eq
                                                                          , Ord
-                                                                         , SafeCopy
                                                                          , Typeable
                                                                          , ToJSON
                                                                          , FromJSON)
 
+deriveSafeCopy 0 'base ''EmailAddress
 makeClassy ''EmailAddress
 
 data NotificationPreference = EmailNotification EmailAddress |
@@ -126,20 +122,19 @@ instance FromJSON NotificationPreference where
                                 String "email" -> EmailNotification <$> obj .: "address"
                                 _              -> mzero
           parseHTTPNotification = withObject "HTTPNotification" parseHttp
-          parseHttp obj = do t <- obj .: "type"
-                             case t of
-                               String "http" -> HTTPNotification <$> obj .: "url"
-                               _             -> mzero
+          parseHttp obj = do
+              String "http" <- obj .: "type"
+              String url    <- obj .: "url"
+              pure . HTTPNotification $ cs url
 
 newtype POSIXWrapper = POSIXWrapper { unPOSIXWrapper :: POSIXTime }
 
 instance FromJSON POSIXWrapper where
-  parseJSON = withNumber "POSIXTime" parsePOSIXTime
-    where parsePOSIXTime (N.I i) = pure . POSIXWrapper . fromIntegral $ i
-          parsePOSIXTime _       = fail "Expected integer"
+  parseJSON = withScientific "POSIXTime" parsePOSIXTime
+    where parsePOSIXTime = pure . POSIXWrapper . fromRational . toRational
 
 instance ToJSON POSIXWrapper where
-  toJSON = Number . N.I . truncate . toRational . unPOSIXWrapper
+  toJSON = Number . fromRational . toRational . unPOSIXWrapper
 
 data WatchState = Active { _lastCheckIn :: POSIXTime } |
                   Paused                               |
@@ -229,12 +224,12 @@ instance FromJSON NewWatch where
 data WatchStoreTag = WatchStoreTag
 
 -- tagspec
-instance Storable NewWatch where
+instance Data.Store.Storable.Storable NewWatch where
   type StoreTS   NewWatch = ID :. WatchName :. WatchInterval :. WatchState :. NotificationPreference
   type StoreKRS  NewWatch = O  :. O         :. O             :. O          :. M
   type StoreIRS  NewWatch = O  :. O         :. M             :. M          :. M
 
-  key (Watch _ wn wi ws wns) = 
+  key (Watch _ wn wi ws wns) =
     S.dimA    S..:
     S.dimO wn S..:
     S.dimO wi S..:
@@ -368,7 +363,7 @@ newtype LogNotifier = LogNotifier { _logNotifier  :: Notifier }
 
 makeFields ''LogNotifier
 
-data NotifierGroup = NotifierGroup { _ngEmail :: Maybe EmailNotifier 
+data NotifierGroup = NotifierGroup { _ngEmail :: Maybe EmailNotifier
                                    , _ngHTTP  :: HTTPNotifier
                                    , _ngLog   :: LogNotifier }
 
