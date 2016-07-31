@@ -89,6 +89,6 @@ parseNotification (CT.List [CT.String "http",  CT.String u]) = Just . HTTPNotifi
 parseNotification _                                          = Nothing
 
 parseInterval :: CT.Value -> Maybe WatchInterval
-parseInterval (CT.List [CT.Number n, CT.String unit]) = Every <$> (pure . truncate $ n) 
+parseInterval (CT.List [CT.Number n, CT.String unit]) = Every <$> (pure . truncate $ n)
                                                               <*> txtToTimeUnit unit
 parseInterval _                                       = Nothing

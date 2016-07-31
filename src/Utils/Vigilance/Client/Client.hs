@@ -155,7 +155,7 @@ makeRequest':: (Response -> S.InputStream ByteString -> IO (VigilanceResponse a)
 makeRequest' handler m p body = do
   host <- asks serverHost
   port <- asks serverPort
-  lift $ withConnection (openConnection host port) $ \c -> do 
+  lift $ withConnection (openConnection host port) $ \c -> do
       req <- buildRequest $ do
               http m p
               setAccept "application/json"
@@ -186,12 +186,12 @@ responseHandler :: (S.InputStream ByteString -> IO (VigilanceResponse a))
                    -> IO (VigilanceResponse a)
 responseHandler successHandler resp stream
   | responseOk        = successHandler stream
-  | notFound          = return . Left $ NotFound 
+  | notFound          = return . Left $ NotFound
   | otherwise         = return . Left $ StatusError statusCode
   where statusCode        = getStatusCode resp
         responseOk        = inRange (200, 299) statusCode
         notFound          = statusCode == 404
-  
+
 
 handleJSONBody :: FromJSON a => S.InputStream ByteString -> IO (VigilanceResponse a)
 handleJSONBody stream = coerceParsed <$> parseJSONBody stream

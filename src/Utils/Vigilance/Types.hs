@@ -57,7 +57,7 @@ data WatchInterval = Every Integer TimeUnit deriving (Show, Eq, Typeable, Ord)
 
 instance ToJSON WatchInterval where
   toJSON (Every n u) = Array $ V.fromList [toJSON n, toJSON u]
-  
+
 instance FromJSON WatchInterval where
   parseJSON = withArray "WatchInterval" $ parseWatchInterval . V.toList
     where parseWatchInterval [Number n, s@(String _)]
@@ -229,7 +229,7 @@ instance Data.Store.Storable.Storable NewWatch where
   type StoreKRS  NewWatch = O  :. O         :. O             :. O          :. M
   type StoreIRS  NewWatch = O  :. O         :. M             :. M          :. M
 
-  key (Watch _ wn wi ws wns) = 
+  key (Watch _ wn wi ws wns) =
     S.dimA    S..:
     S.dimO wn S..:
     S.dimO wi S..:
@@ -363,7 +363,7 @@ newtype LogNotifier = LogNotifier { _logNotifier  :: Notifier }
 
 makeFields ''LogNotifier
 
-data NotifierGroup = NotifierGroup { _ngEmail :: Maybe EmailNotifier 
+data NotifierGroup = NotifierGroup { _ngEmail :: Maybe EmailNotifier
                                    , _ngHTTP  :: HTTPNotifier
                                    , _ngLog   :: LogNotifier }
 

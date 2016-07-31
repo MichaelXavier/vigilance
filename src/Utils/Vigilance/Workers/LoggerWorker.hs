@@ -23,7 +23,7 @@ import Utils.Vigilance.Types
 import Utils.Vigilance.Utils (expandHome)
 
 -- lift into the either monad?
--- liftM Foo (takeTMVar fooTMVar) `orElse` liftM Bar (readTChan barTChan) 
+-- liftM Foo (takeTMVar fooTMVar) `orElse` liftM Bar (readTChan barTChan)
 runWorker :: LogChan -> Config -> TChan Config -> IO ()
 runWorker q Config { _configLogCfg = cfg } cfgChan = do
   logger <- openLogger $ cfg ^. logCfgPath
@@ -55,7 +55,7 @@ openLogger path = do path' <- expandHome path
 
 
 addTime :: Logger -> [LogStr] -> IO [LogStr]
-addTime logger = mapM fmt 
+addTime logger = mapM fmt
   where fmt str = do date <- loggerDate logger
                      return . LB $ mconcat ["[", date ,"] ", toBS str]
         toBS (LB bs) = bs

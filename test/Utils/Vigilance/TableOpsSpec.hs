@@ -136,7 +136,7 @@ spec = parallel $ do
 
     prop "it only updates watchInterval and watchNotifications" $ \(UniqueWatches watches) targetWatch wInterval' wState' notifications' ->
       let table = fromList (watches ++ [targetWatch])
-          targetWatch' = targetWatch { _watchInterval = wInterval', _watchWState = wState', _watchNotifications = notifications' } 
+          targetWatch' = targetWatch { _watchInterval = wInterval', _watchWState = wState', _watchNotifications = notifications' }
           table' = mergeStaticWatches [targetWatch'] table
           expectedResult   = targetWatch { _watchInterval = wInterval', _watchNotifications = notifications' }
           resultingWatches = table' ^. with (sWatchName .== (targetWatch' ^. watchName)) . to elements
@@ -161,7 +161,7 @@ spec = parallel $ do
 
     prop "it inserts correctly" $ \w ->
       let (acid', w') = update acid $ insert w
-          result      = query acid' $ find w' 
+          result      = query acid' $ find w'
       in result == Just (w & watchId .~ 1)
 
     prop "it deletes data that is known" $ \w ->
