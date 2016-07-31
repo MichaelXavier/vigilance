@@ -4,11 +4,9 @@
 module Main (main) where
 
 import Prelude (FilePath)
-import ClassyPrelude hiding (FilePath)
-import Control.Monad.Trans.Reader (runReaderT)
+import ClassyPrelude hiding (FilePath, (<>))
+import Data.String.Conversions (cs)
 import Options.Applicative
-import Options.Applicative.Builder.Internal ( CommandFields
-                                            , Mod )
 import System.Exit ( exitSuccess
                    , exitFailure)
 
@@ -46,7 +44,7 @@ displayError :: VError -> IO ()
 displayError e = putStrLn (message e) >> exitFailure
   where message NotFound           = "Watch not found"
         message (ParseError msg)   = "Parse error: " <> msg
-        message (StatusError code) = "Server returned error status: " <> show code
+        message (StatusError code) = "Server returned error status: " <> cs (show code)
 
 opts :: ParserInfo Options
 opts = info (helper <*> optionsParser) banner
