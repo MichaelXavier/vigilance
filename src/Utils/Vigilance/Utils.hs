@@ -11,20 +11,10 @@ module Utils.Vigilance.Utils ( watchIntervalSeconds
                              , bindM3
                              , bindM2) where
 
-import ClassyPrelude hiding (FilePath)
+import ClassyPrelude hiding (FilePath, tryReadTChan)
 import Prelude (FilePath)
-import Control.Monad ( liftM3
-                     , liftM2 )
 
-import Control.Monad.STM ( atomically
-                         , orElse
-                         , STM )
-import Control.Concurrent.STM.TChan ( TChan
-                                    , readTChan )
-import Control.Concurrent.STM.TMVar ( TMVar
-                                    , newEmptyTMVarIO
-                                    , takeTMVar
-                                    , putTMVar)
+import Control.Monad.STM (orElse)
 import qualified Data.Text as T
 import System.Directory (getHomeDirectory)
 import Utils.Vigilance.Types
