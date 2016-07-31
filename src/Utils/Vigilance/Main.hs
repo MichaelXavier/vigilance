@@ -11,14 +11,8 @@ import Control.Concurrent.Async ( waitAnyCatchCancel
                                 , cancel
                                 , Async
                                 , async )
-import Control.Concurrent.STM ( atomically
-                              , newBroadcastTChan
-                              , TChan
-                              , writeTChan
-                              , dupTChan )
 import Control.Lens
-import Control.Monad.Reader ( ask
-                            , asks )
+import Control.Monad.Reader ( asks )
 import Data.Acid ( AcidState
                  , openLocalStateFrom
                  , createCheckpoint

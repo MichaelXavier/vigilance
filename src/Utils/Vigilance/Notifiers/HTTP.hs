@@ -10,6 +10,7 @@ import Blaze.ByteString.Builder (Builder)
 import Data.Aeson ( ToJSON
                   , encode )
 import Data.Ix (inRange)
+import Data.String.Conversions (cs)
 import Network.Http.Client ( URL
                            , inputStreamBody
                            , getStatusCode
@@ -44,9 +45,9 @@ makeRequest w url = do
           | otherwise               = failure code
         success code = vLog [qc|{url} returned {code}|] >> return Nothing
         failure code = pushLog [qc|{url} failed with {code}|] >> failedByCode code
-        failedByException e = return . Just $ FailedNotification w notif (FailedByException $ show e) 0
+        failedByException e = return . Just $ FailedNotification w notif (FailedByException . cs . show $ e) 0
         failedByCode code   = return . Just $ FailedNotification w notif (FailedByCode code) 0
         notif = HTTPNotification url
 
-jsonBodyStream :: ToJSON a => a -> IO (S.OutputStream Builder -> IO ())
+jsonBodyStream :: ToJSON a => a -> IO (S.OutputStream Blaze.ByteString.Builder.Builder -> IO ())
 jsonBodyStream = fmap inputStreamBody . S.fromLazyByteString . encode

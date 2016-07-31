@@ -11,6 +11,7 @@ module Utils.Vigilance.Workers.NotificationRetryWorker ( runWorker
 import ClassyPrelude
 import Control.Lens
 import Data.Acid (AcidState)
+import Data.String.Conversions (ST)
 import Text.InterpolatedString.Perl6 (qc)
 import Utils.Vigilance.Logger ( pushLog
                               , renameLogCtx
@@ -27,7 +28,9 @@ runWorker acid maxRetries notifiers = renameLogCtx "Notification Retry Worker" $
   mapM_ logFail fails'
   let toRetry = failuresToRetry maxRetries fails'
   lift $ setFailedNotificationsS acid toRetry
-  where startLog fails = intercalate ", " $ map (\w -> w ^. failedWatch . watchName . unWatchName) fails
+  where
+    startLog :: [FailedNotification] -> ST
+    startLog fails = intercalate ", " $ map (\w -> w ^. failedWatch . watchName . unWatchName) fails
 
 notifyOrBump :: Notifier -> FailedNotification -> LogCtxT IO (Maybe FailedNotification)
 notifyOrBump n fn = do
@@ -42,9 +45,9 @@ notifyOrBump n fn = do
 
 notify :: NotifierGroup -> FailedNotification -> LogCtxT IO (Maybe FailedNotification)
 notify NotifierGroup { _ngEmail = Just n}
-       fn@FailedNotification { _failedPref = (EmailNotification _)} = notifyOrBump (n ^. notifier) fn
+       fn@FailedNotification { _failedPref = (EmailNotification _)} = notifyOrBump (_emailNotifier n) fn
 notify NotifierGroup {_ngHTTP}
-       fn@FailedNotification { _failedPref = (HTTPNotification _)} = notifyOrBump (_ngHTTP ^. notifier) fn
+       fn@FailedNotification { _failedPref = (HTTPNotification _)} = notifyOrBump (_httpNotifier _ngHTTP) fn
 notify _ fn = pushLog [qc|No notifier configured for {fn}|] >> return Nothing
 
 logFail :: FailedNotification -> LogCtxT IO ()

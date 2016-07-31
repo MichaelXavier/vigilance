@@ -14,6 +14,7 @@ import ClassyPrelude
 import Control.Lens hiding (from)
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Map.Lazy as M
+import Data.String.Conversions (cs)
 import Text.InterpolatedString.Perl6 (qc)
 import Network.Mail.Mime ( Address(..)
                          , emptyMail
@@ -48,7 +49,7 @@ renderSendMail' (NotificationMail ws mail) = do
   where emailList = intercalate ", " emails
         emails    = map addressEmail . mailTo $ mail
         addrs     = map EmailAddress emails
-        buildFailures e = return [ FailedNotification w n (FailedByException $ show e) 0
+        buildFailures e = return [ FailedNotification w n (FailedByException . cs . show $ e) 0
                                  | w <- ws
                                  , n@(EmailNotification addr) <- w ^. watchNotifications
                                  , addr `elem` addrs ]
